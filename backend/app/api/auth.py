@@ -130,29 +130,57 @@ async def callback(request: Request, code: str = None, state: str = None, error:
                 )
         
         # 사용자 정보 가져오기
+        # Google OAuth2 v2 userinfo 엔드포인트 사용
         async with httpx.AsyncClient() as client:
             user_response = await client.get(
                 'https://www.googleapis.com/oauth2/v2/userinfo',
-                headers={'Authorization': f"Bearer {access_token}"}
+                headers={
+                    'Authorization': f"Bearer {access_token}",
+                    'Accept': 'application/json'
+                },
+                timeout=10.0
             )
             
+            print(f"User info API response: Status {user_response.status_code}")
+            
             if user_response.status_code != 200:
+                error_text = user_response.text
+                print(f"User info retrieval failed: Status {user_response.status_code}, Response: {error_text}")
+                # 401 Unauthorized인 경우 토큰 문제
+                if user_response.status_code == 401:
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Invalid access token. Please try logging in again."
+                    )
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Failed to get user information from Google"
+                    detail=f"Failed to retrieve user information from Google (Status: {user_response.status_code})"
                 )
             
-            user_info = user_response.json()
+            try:
+                user_info = user_response.json()
+                print(f"User info received: {list(user_info.keys())}")
+            except Exception as json_error:
+                print(f"Failed to parse user info JSON: {json_error}")
+                print(f"Response text: {user_response.text[:200]}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid response format from Google userinfo API"
+                )
         
-        google_id = user_info.get('sub')
+        google_id = user_info.get('sub') or user_info.get('id')
         email = user_info.get('email')
         name = user_info.get('name', '')
         picture = user_info.get('picture')
         
+        print(f"Extracted user data: google_id={google_id}, email={email}, name={name}")
+        
         if not google_id or not email:
+            print(f"Missing required fields: google_id={google_id}, email={email}")
+            print(f"Full user_info: {user_info}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Failed to get user information from Google"
+                detail="Failed to get required user information from Google (missing id or email)"
             )
         
         # 사용자 조회 또는 생성
@@ -188,10 +216,30 @@ async def callback(request: Request, code: str = None, state: str = None, error:
         frontend_url = f"http://localhost:3000/auth/callback?token={jwt_token}"
         return RedirectResponse(url=frontend_url)
         
+    except HTTPException:
+        # HTTPException은 그대로 전달
+        raise
     except Exception as e:
+        # 상세한 에러 정보 로깅 (보안을 위해 민감한 정보는 제외)
+        import traceback
+        error_type = type(e).__name__
+        error_message = str(e) if str(e) else "Unknown error"
+        
+        # 로그에만 상세 정보 기록 (프로덕션에서는 로깅 시스템 사용)
+        print(f"OAuth callback error: {error_type}: {error_message}")
+        print(f"Traceback: {traceback.format_exc()}")
+        
+        # 클라이언트에는 일반적인 메시지만 전달 (보안)
+        if "code" in error_message.lower() or "token" in error_message.lower():
+            detail_message = "Authentication failed: Invalid authorization code or token exchange failed"
+        elif "user" in error_message.lower() or "info" in error_message.lower():
+            detail_message = "Authentication failed: Unable to retrieve user information"
+        else:
+            detail_message = f"Authentication failed: {error_type}"
+        
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Authentication failed: {str(e)}"
+            detail=detail_message
         )
 
 @router.get("/me", response_model=UserResponse)

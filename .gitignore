@@ -77,4 +77,4 @@ htmlcov/
 *.bak
 *.tmp
 
-Gemini*
+perf/*

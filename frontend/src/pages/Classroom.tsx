@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { classroomApi, calendarApi, Course, Coursework, CalendarEvent } from '../services/api'
+import { classroomApi, Course } from '../services/api'
 import CalendarView from './CalendarView'
 import './Classroom.css'
 
 const CalendarSidebar: React.FC = () => {
   const { token } = useAuth()
-  const [events, setEvents] = useState<CalendarEvent[]>([])
+  const [events, setEvents] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -20,6 +20,7 @@ const CalendarSidebar: React.FC = () => {
     
     setLoading(true)
     try {
+      const { calendarApi } = await import('../services/api')
       const data = await calendarApi.getEvents(token, 3)
       setEvents(data)
     } catch (err) {
@@ -59,14 +60,62 @@ const CalendarSidebar: React.FC = () => {
   )
 }
 
+interface ClassCardProps {
+  course: Course
+  onClick: () => void
+}
+
+const ClassCard: React.FC<ClassCardProps> = ({ course, onClick }) => {
+  const getStatusTag = () => {
+    if (course.courseState === 'ACTIVE') {
+      return <span className="class-tag ongoing">Ongoing</span>
+    } else if (course.courseState === 'ARCHIVED') {
+      return <span className="class-tag finished">Finished</span>
+    } else {
+      return <span className="class-tag preparing">Preparing</span>
+    }
+  }
+
+  const getOrganizationTag = () => {
+    // 조직 태그는 course 정보에서 추출하거나 기본값 사용
+    return <span className="class-tag org">GFSU</span>
+  }
+
+  return (
+    <div className="class-card" onClick={onClick}>
+      <div className="class-card-image">
+        <img 
+          src={course.teacherFolder?.alternateLink ? `${course.teacherFolder.alternateLink}/thumbnail` : 'https://via.placeholder.com/300x200?text=Class'} 
+          alt={course.name}
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x200?text=Class'
+          }}
+        />
+        <div className="class-card-tags">
+          {getStatusTag()}
+          {getOrganizationTag()}
+        </div>
+      </div>
+      <div className="class-card-content">
+        <h3 className="class-card-title">{course.name}</h3>
+        {course.section && (
+          <p className="class-card-subtitle">({course.section})</p>
+        )}
+        <button className="class-card-button" onClick={(e) => { e.stopPropagation(); onClick(); }}>
+          Start Learning
+        </button>
+      </div>
+    </div>
+  )
+}
+
 const Classroom: React.FC = () => {
   const { user, token } = useAuth()
   const [courses, setCourses] = useState<Course[]>([])
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
-  const [coursework, setCoursework] = useState<Coursework[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'courses' | 'calendar'>('courses')
+  const [activeView, setActiveView] = useState<'all' | 'my-courses' | 'calendar'>('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'ongoing' | 'preparing' | 'finished'>('all')
 
   useEffect(() => {
     if (token && user) {
@@ -90,202 +139,161 @@ const Classroom: React.FC = () => {
     }
   }
 
-  const loadCoursework = async (courseId: string) => {
-    if (!token) return
-    
-    setLoading(true)
-    setError(null)
-    try {
-      const data = await classroomApi.getCoursework(courseId, token)
-      setCoursework(data)
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to load coursework')
-      console.error('Error loading coursework:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const myCourses = useMemo(() => {
+    return courses.filter(course => course.courseState === 'ACTIVE')
+  }, [courses])
 
-  const handleCourseClick = (course: Course) => {
-    setSelectedCourse(course)
-    if (course.id) {
-      loadCoursework(course.id)
+  const filteredCourses = useMemo(() => {
+    let filtered = activeView === 'my-courses' ? myCourses : courses
+    
+    if (statusFilter === 'all') return filtered
+    
+    return filtered.filter(course => {
+      if (statusFilter === 'ongoing') return course.courseState === 'ACTIVE'
+      if (statusFilter === 'preparing') return course.courseState === 'PROVISIONED' || course.courseState === 'DECLINED'
+      if (statusFilter === 'finished') return course.courseState === 'ARCHIVED'
+      return true
+    })
+  }, [courses, myCourses, activeView, statusFilter])
+
+  const handleClassClick = (course: Course) => {
+    if (course.alternateLink) {
+      window.open(course.alternateLink, '_blank')
     }
   }
 
   return (
-    <div className="classroom">
-      <div className="classroom-grid">
-        <div className="sidebar-left">
-          <h2 className="sidebar-title">My Courses</h2>
-          {loading && courses.length === 0 ? (
-            <div className="loading-text">Loading courses...</div>
-          ) : error ? (
-            <div className="error-text">{error}</div>
-          ) : (
-            <ul className="sidebar-menu">
-              {courses.length === 0 ? (
-                <li className="menu-item">
-                  <span>No courses found</span>
-                </li>
-              ) : (
-                courses.map((course) => (
-                  <li 
-                    key={course.id} 
-                    className={`menu-item ${selectedCourse?.id === course.id ? 'active' : ''}`}
-                    onClick={() => handleCourseClick(course)}
-                  >
-                    <span className="menu-text">{course.name}</span>
-                    {course.courseState === 'ACTIVE' && (
-                      <span className="menu-dot green"></span>
-                    )}
-                  </li>
-                ))
-              )}
-            </ul>
-          )}
-          <div className="copyright">©2266 Global toops husparstmà</div>
+    <div className="classroom-page">
+      {/* How to Join a Class Banner */}
+      <div className="join-class-banner">
+        <div className="banner-content">
+          <h2 className="banner-title">How to Join a Class?</h2>
+          <p className="banner-subtitle">*Before You Start - Please Check below</p>
+          <span className="banner-arrow">↓</span>
+        </div>
+      </div>
+
+      <div className="classroom-container">
+        {/* Main Tabs */}
+        <div className="main-tabs">
+          <button 
+            className={`main-tab ${activeView === 'all' ? 'active' : ''}`}
+            onClick={() => setActiveView('all')}
+          >
+            전체 클래스
+          </button>
+          <button 
+            className={`main-tab ${activeView === 'my-courses' ? 'active' : ''}`}
+            onClick={() => setActiveView('my-courses')}
+          >
+            내가 배우고 있는 클래스
+          </button>
+          <button 
+            className={`main-tab ${activeView === 'calendar' ? 'active' : ''}`}
+            onClick={() => setActiveView('calendar')}
+          >
+            Calendar
+          </button>
         </div>
 
-        <div className="main-content-area">
-          <h2 className="section-title">Learning</h2>
-          <div className="tabs">
-            <button 
-              className={`tab ${activeTab === 'courses' ? 'active' : ''}`}
-              onClick={() => setActiveTab('courses')}
-            >
-              Courses
-            </button>
-            <button 
-              className={`tab ${activeTab === 'calendar' ? 'active' : ''}`}
-              onClick={() => setActiveTab('calendar')}
-            >
-              Calendar
-            </button>
-          </div>
+        {activeView === 'calendar' ? (
+          <CalendarView />
+        ) : (
+          <>
+            {/* Status Filter Tabs */}
+            {activeView === 'all' && (
+              <div className="status-tabs">
+                <button 
+                  className={`status-tab ${statusFilter === 'all' ? 'active' : ''}`}
+                  onClick={() => setStatusFilter('all')}
+                >
+                  전체
+                </button>
+                <button 
+                  className={`status-tab ${statusFilter === 'ongoing' ? 'active' : ''}`}
+                  onClick={() => setStatusFilter('ongoing')}
+                >
+                  진행중
+                </button>
+                <button 
+                  className={`status-tab ${statusFilter === 'preparing' ? 'active' : ''}`}
+                  onClick={() => setStatusFilter('preparing')}
+                >
+                  오픈 예정
+                </button>
+                <button 
+                  className={`status-tab ${statusFilter === 'finished' ? 'active' : ''}`}
+                  onClick={() => setStatusFilter('finished')}
+                >
+                  종료된
+                </button>
+              </div>
+            )}
 
-          {activeTab === 'courses' ? (
-            <>
-              {selectedCourse ? (
-                <div className="course-detail">
-                  <div className="course-header">
-                    <h3 className="course-title">{selectedCourse.name}</h3>
-                    {selectedCourse.section && (
-                      <p className="course-section">Section: {selectedCourse.section}</p>
-                    )}
-                    {selectedCourse.description && (
-                      <p className="course-description">{selectedCourse.description}</p>
-                    )}
-                    {selectedCourse.alternateLink && (
-                      <a 
-                        href={selectedCourse.alternateLink} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="course-btn"
-                      >
-                        Open in Google Classroom
-                      </a>
-                    )}
+            {/* Thematic Classes Section */}
+            <div className="thematic-classes-section">
+              <div className="section-header">
+                <h2 className="section-title">Thematic Classes</h2>
+                <p className="section-description">
+                  Let's take case studies based on experiences from GN partnership countries.
+                </p>
+              </div>
+
+              {loading ? (
+                <div className="loading-container">
+                  <div className="loading-text">Loading classes...</div>
+                </div>
+              ) : error ? (
+                <div className="error-container">
+                  <div className="error-text">{error}</div>
+                </div>
+              ) : filteredCourses.length === 0 ? (
+                <div className="empty-container">
+                  <p>No classes found. Please enroll in Google Classroom courses.</p>
+                </div>
+              ) : (
+                <div className="class-cards-grid">
+                  {filteredCourses.map((course) => (
+                    <ClassCard
+                      key={course.id}
+                      course={course}
+                      onClick={() => handleClassClick(course)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Global Learning by Region Section */}
+            <div className="region-classes-section">
+              <div className="section-header">
+                <h2 className="section-title">Global Learning by Region</h2>
+                <p className="section-description">
+                  Region-specific fundraising strategy courses will also be offered.
+                </p>
+              </div>
+              <div className="region-cards-grid">
+                {/* Region cards can be added here if needed */}
+                <div className="region-card">
+                  <div className="region-card-image">
+                    <span className="region-placeholder">Region Course</span>
                   </div>
-
-                  {loading && coursework.length === 0 ? (
-                    <div className="loading-text">Loading assignments...</div>
-                  ) : (
-                    <div className="course-modules">
-                      <h4 className="modules-title">Assignments</h4>
-                      {coursework.length === 0 ? (
-                        <p className="no-assignments">No assignments found</p>
-                      ) : (
-                        <ul className="modules-list">
-                          {coursework.map((work) => (
-                            <li key={work.id} className="module-item">
-                              <div className="module-content">
-                                <span className="module-name">{work.title}</span>
-                                {work.dueDate && (
-                                  <span className="module-due">
-                                    Due: {work.dueDate.year}-{work.dueDate.month}-{work.dueDate.day}
-                                  </span>
-                                )}
-                              </div>
-                              {work.alternateLink && (
-                                <a 
-                                  href={work.alternateLink} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="module-link"
-                                >
-                                  →
-                                </a>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  )}
+                  <span className="class-tag preparing">Preparing</span>
+                  <h3 className="region-card-title">EAST ASIA</h3>
+                  <button className="class-card-button">Start Learning</button>
                 </div>
-              ) : (
-                <div className="course-cards">
-                  {courses.length === 0 ? (
-                    <div className="no-courses">
-                      <p>No courses available. Please enroll in Google Classroom courses.</p>
-                    </div>
-                  ) : (
-                    courses.map((course) => (
-                      <div 
-                        key={course.id} 
-                        className="course-card"
-                        onClick={() => handleCourseClick(course)}
-                      >
-                        <div className="course-header">
-                          <h3 className="course-title">{course.name}</h3>
-                        </div>
-                        <div className="course-content">
-                          <div className="course-info">
-                            {course.description && (
-                              <p className="course-description">{course.description}</p>
-                            )}
-                            {course.section && (
-                              <p className="course-section">Section: {course.section}</p>
-                            )}
-                            {course.alternateLink && (
-                              <a 
-                                href={course.alternateLink} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="course-btn"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                VIEW COURSE
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-            </>
-          ) : (
-            <CalendarView />
-          )}
-        </div>
+              </div>
+            </div>
 
-        <div className="sidebar-right">
-          <h2 className="sidebar-title">Today's Focus</h2>
-          <div className="focus-section">
-            <h3 className="focus-subtitle">Ik bits Repind</h3>
-            <p className="focus-text">Your crpentloettberntiert thaaike So incase</p>
-          </div>
-          <CalendarSidebar />
-          <div className="social-icons">
-            <span className="social-icon">📅</span>
-            <span className="social-icon">💬</span>
-            <span className="social-icon">👤</span>
-            <span className="social-icon">⚙️</span>
-          </div>
-        </div>
+            {/* Skill up Banner */}
+            <div className="skill-up-banner">
+              <div className="banner-content">
+                <p className="banner-text">Skill up with GFSU's special courses, and share your feedback</p>
+                <button className="banner-button">Get in Touch</button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
