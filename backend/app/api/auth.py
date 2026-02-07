@@ -14,9 +14,9 @@ import httpx
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 # OAuth 설정
-config = Config()
-oauth = OAuth(config)
+oauth = OAuth()
 
+# Google OAuth 등록 (설정이 있을 때만)
 if settings.GOOGLE_CLIENT_ID and settings.GOOGLE_CLIENT_SECRET:
     oauth.register(
         name='google',
@@ -24,7 +24,9 @@ if settings.GOOGLE_CLIENT_ID and settings.GOOGLE_CLIENT_SECRET:
         client_secret=settings.GOOGLE_CLIENT_SECRET,
         server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
         client_kwargs={
-            'scope': 'openid email profile'
+            'scope': 'openid email profile https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.coursework.me.readonly https://www.googleapis.com/auth/calendar.readonly',
+            'access_type': 'offline',
+            'prompt': 'consent'
         }
     )
 
@@ -75,6 +77,9 @@ async def callback(request: Request, code: str, db: Session = Depends(get_db)):
                 detail="Failed to get user information from Google"
             )
         
+        # Refresh token 저장
+        refresh_token = token.get('refresh_token')
+        
         # 사용자 조회 또는 생성
         user = db.query(User).filter(User.google_id == google_id).first()
         if not user:
@@ -82,7 +87,8 @@ async def callback(request: Request, code: str, db: Session = Depends(get_db)):
                 google_id=google_id,
                 email=email,
                 name=name,
-                picture=picture
+                picture=picture,
+                google_refresh_token=refresh_token
             )
             db.add(user)
             db.commit()
@@ -92,6 +98,8 @@ async def callback(request: Request, code: str, db: Session = Depends(get_db)):
             user.email = email
             user.name = name
             user.picture = picture
+            if refresh_token:
+                user.google_refresh_token = refresh_token
             db.commit()
             db.refresh(user)
         

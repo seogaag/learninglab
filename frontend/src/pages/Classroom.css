@@ -249,6 +249,73 @@
   color: #5DC6CF;
 }
 
+.module-item.active {
+  background: #E9EADE;
+  padding-left: 0.5rem;
+}
+
+.module-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.module-name {
+  font-weight: 500;
+}
+
+.module-due {
+  font-size: 0.85rem;
+  color: #685A55;
+}
+
+.module-link {
+  color: #5DC6CF;
+  text-decoration: none;
+  font-weight: bold;
+  margin-left: 0.5rem;
+}
+
+.module-link:hover {
+  color: #89A230;
+}
+
+.course-detail {
+  background: #F2EFED;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+}
+
+.course-section {
+  color: #685A55;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.loading-text,
+.error-text,
+.no-courses {
+  padding: 2rem;
+  text-align: center;
+  color: #685A55;
+}
+
+.error-text {
+  color: #F16521;
+}
+
+.course-card {
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.course-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
 .focus-section {
   margin-bottom: 2rem;
 }

@@ -1,12 +1,19 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 from app.core.config import settings
-from app.api import auth
+from app.api import auth, classroom, calendar
 
 app = FastAPI(
     title="Insight Hub API",
     description="Global Marketing Learning Platform API",
     version="1.0.0",
+)
+
+# Session Middleware (OAuth를 위해 필요)
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.SECRET_KEY
 )
 
 # CORS 설정
@@ -20,6 +27,8 @@ app.add_middleware(
 
 # 라우터 등록
 app.include_router(auth.router)
+app.include_router(classroom.router)
+app.include_router(calendar.router)
 
 @app.get("/")
 async def root():

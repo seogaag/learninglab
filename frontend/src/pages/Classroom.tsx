@@ -1,130 +1,275 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
+import { useAuth } from '../contexts/AuthContext'
+import { classroomApi, calendarApi, Course, Coursework, CalendarEvent } from '../services/api'
+import CalendarView from './CalendarView'
 import './Classroom.css'
 
+const CalendarSidebar: React.FC = () => {
+  const { token } = useAuth()
+  const [events, setEvents] = useState<CalendarEvent[]>([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (token) {
+      loadEvents()
+    }
+  }, [token])
+
+  const loadEvents = async () => {
+    if (!token) return
+    
+    setLoading(true)
+    try {
+      const data = await calendarApi.getEvents(token, 3)
+      setEvents(data)
+    } catch (err) {
+      console.error('Error loading events:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return ''
+    const date = new Date(dateString)
+    return date.toLocaleDateString('ko-KR', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
+  return (
+    <div className="calendar-events">
+      <h3 className="focus-subtitle">Calendar Events</h3>
+      {loading ? (
+        <div className="loading-text">Loading...</div>
+      ) : events.length === 0 ? (
+        <div className="no-events">No upcoming events</div>
+      ) : (
+        events.map((event) => (
+          <div key={event.id} className="event-item">
+            <div className="event-date">{formatDate(event.start?.dateTime || event.start?.date)}</div>
+            <div className="event-title-small">{event.summary}</div>
+          </div>
+        ))
+      )}
+    </div>
+  )
+}
+
 const Classroom: React.FC = () => {
+  const { user, token } = useAuth()
+  const [courses, setCourses] = useState<Course[]>([])
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
+  const [coursework, setCoursework] = useState<Coursework[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'courses' | 'calendar'>('courses')
+
+  useEffect(() => {
+    if (token && user) {
+      loadCourses()
+    }
+  }, [token, user])
+
+  const loadCourses = async () => {
+    if (!token) return
+    
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await classroomApi.getCourses(token)
+      setCourses(data)
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to load courses')
+      console.error('Error loading courses:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadCoursework = async (courseId: string) => {
+    if (!token) return
+    
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await classroomApi.getCoursework(courseId, token)
+      setCoursework(data)
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to load coursework')
+      console.error('Error loading coursework:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCourseClick = (course: Course) => {
+    setSelectedCourse(course)
+    if (course.id) {
+      loadCoursework(course.id)
+    }
+  }
+
   return (
     <div className="classroom">
       <div className="classroom-grid">
         <div className="sidebar-left">
-          <h2 className="sidebar-title">Main Homepage</h2>
-          <ul className="sidebar-menu">
-            <li className="menu-item">
-              <span>My Courses</span>
-            </li>
-            <li className="menu-item">
-              <span>Ezliert lored</span>
-            </li>
-            <li className="menu-item">
-              <span className="menu-text">AI Marketing</span>
-              <span className="menu-dot yellow"></span>
-            </li>
-            <li className="menu-item">
-              <span className="menu-text">Content Strategy</span>
-              <span className="menu-check green">✓</span>
-            </li>
-            <li className="menu-item">
-              <span className="menu-text">Clobeld oontteges Q2</span>
-              <span className="menu-check green">✓</span>
-            </li>
-            <li className="menu-item">
-              <span>Global Cenayties</span>
-            </li>
-            <li className="menu-item">
-              <span>Data Analytics</span>
-            </li>
-            <li className="menu-item">
-              <span className="menu-text">Filter</span>
-              <span className="menu-dot green"></span>
-            </li>
-          </ul>
+          <h2 className="sidebar-title">My Courses</h2>
+          {loading && courses.length === 0 ? (
+            <div className="loading-text">Loading courses...</div>
+          ) : error ? (
+            <div className="error-text">{error}</div>
+          ) : (
+            <ul className="sidebar-menu">
+              {courses.length === 0 ? (
+                <li className="menu-item">
+                  <span>No courses found</span>
+                </li>
+              ) : (
+                courses.map((course) => (
+                  <li 
+                    key={course.id} 
+                    className={`menu-item ${selectedCourse?.id === course.id ? 'active' : ''}`}
+                    onClick={() => handleCourseClick(course)}
+                  >
+                    <span className="menu-text">{course.name}</span>
+                    {course.courseState === 'ACTIVE' && (
+                      <span className="menu-dot green"></span>
+                    )}
+                  </li>
+                ))
+              )}
+            </ul>
+          )}
           <div className="copyright">©2266 Global toops husparstmà</div>
         </div>
 
         <div className="main-content-area">
           <h2 className="section-title">Learning</h2>
           <div className="tabs">
-            <button className="tab">Calendar</button>
-            <button className="tab active">Spien 3lt</button>
+            <button 
+              className={`tab ${activeTab === 'courses' ? 'active' : ''}`}
+              onClick={() => setActiveTab('courses')}
+            >
+              Courses
+            </button>
+            <button 
+              className={`tab ${activeTab === 'calendar' ? 'active' : ''}`}
+              onClick={() => setActiveTab('calendar')}
+            >
+              Calendar
+            </button>
           </div>
 
-          <div className="progress-section">
-            <div className="progress-item">
-              <div className="progress-header">
-                <span className="progress-title">AI Marketing</span>
-                <span className="progress-percent">60% Complete</span>
-              </div>
-              <div className="progress-bar">
-                <div className="progress-fill" style={{ width: '60%' }}></div>
-              </div>
-            </div>
-            <div className="progress-item">
-              <div className="progress-header">
-                <span className="progress-title">Content Strategy</span>
-                <span className="progress-percent">65% Complete</span>
-              </div>
-              <div className="progress-bar">
-                <div className="progress-fill" style={{ width: '65%' }}></div>
-              </div>
-            </div>
-          </div>
+          {activeTab === 'courses' ? (
+            <>
+              {selectedCourse ? (
+                <div className="course-detail">
+                  <div className="course-header">
+                    <h3 className="course-title">{selectedCourse.name}</h3>
+                    {selectedCourse.section && (
+                      <p className="course-section">Section: {selectedCourse.section}</p>
+                    )}
+                    {selectedCourse.description && (
+                      <p className="course-description">{selectedCourse.description}</p>
+                    )}
+                    {selectedCourse.alternateLink && (
+                      <a 
+                        href={selectedCourse.alternateLink} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="course-btn"
+                      >
+                        Open in Google Classroom
+                      </a>
+                    )}
+                  </div>
 
-          <div className="course-cards">
-            <div className="course-card">
-              <div className="course-header">
-                <h3 className="course-title">Google Classroom</h3>
-              </div>
-              <div className="course-content">
-                <img 
-                  src="https://via.placeholder.com/200" 
-                  alt="Course" 
-                  className="course-image"
-                />
-                <div className="course-info">
-                  <p className="course-description">Arooul Woting nhatч вечоривна</p>
-                  <button className="course-btn">VIEW COURSE</button>
+                  {loading && coursework.length === 0 ? (
+                    <div className="loading-text">Loading assignments...</div>
+                  ) : (
+                    <div className="course-modules">
+                      <h4 className="modules-title">Assignments</h4>
+                      {coursework.length === 0 ? (
+                        <p className="no-assignments">No assignments found</p>
+                      ) : (
+                        <ul className="modules-list">
+                          {coursework.map((work) => (
+                            <li key={work.id} className="module-item">
+                              <div className="module-content">
+                                <span className="module-name">{work.title}</span>
+                                {work.dueDate && (
+                                  <span className="module-due">
+                                    Due: {work.dueDate.year}-{work.dueDate.month}-{work.dueDate.day}
+                                  </span>
+                                )}
+                              </div>
+                              {work.alternateLink && (
+                                <a 
+                                  href={work.alternateLink} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="module-link"
+                                >
+                                  →
+                                </a>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )}
                 </div>
-              </div>
-              <div className="course-modules">
-                <h4 className="modules-title">Carkvis</h4>
-                <ul className="modules-list">
-                  <li className="module-item">Passatrs →</li>
-                  <li className="module-item">Murreyre →</li>
-                  <li className="module-item">MA →</li>
-                  <li className="module-item">Datovine vihas →</li>
-                  <li className="module-item">Earicance fruage →</li>
-                  <li className="module-item">Toedt Ross →</li>
-                  <li className="module-item">Noursers/sene 63 Bessiée →</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="course-card">
-              <div className="course-header">
-                <h3 className="course-title">AI Prurred Masioring Sihedges</h3>
-              </div>
-              <div className="course-content">
-                <img 
-                  src="https://via.placeholder.com/200" 
-                  alt="Course" 
-                  className="course-image"
-                />
-                <div className="course-info">
-                  <p className="course-description">Course description text here...</p>
-                  <button className="course-btn">VIEW COURSE</button>
+              ) : (
+                <div className="course-cards">
+                  {courses.length === 0 ? (
+                    <div className="no-courses">
+                      <p>No courses available. Please enroll in Google Classroom courses.</p>
+                    </div>
+                  ) : (
+                    courses.map((course) => (
+                      <div 
+                        key={course.id} 
+                        className="course-card"
+                        onClick={() => handleCourseClick(course)}
+                      >
+                        <div className="course-header">
+                          <h3 className="course-title">{course.name}</h3>
+                        </div>
+                        <div className="course-content">
+                          <div className="course-info">
+                            {course.description && (
+                              <p className="course-description">{course.description}</p>
+                            )}
+                            {course.section && (
+                              <p className="course-section">Section: {course.section}</p>
+                            )}
+                            {course.alternateLink && (
+                              <a 
+                                href={course.alternateLink} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="course-btn"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                VIEW COURSE
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
-              </div>
-            </div>
-
-            <div className="course-card">
-              <div className="course-header">
-                <h3 className="course-title">Market</h3>
-              </div>
-              <div className="course-content">
-                <p className="course-description">Market course content...</p>
-                <button className="course-btn">LOOIFT REUE</button>
-              </div>
-            </div>
-          </div>
+              )}
+            </>
+          ) : (
+            <CalendarView />
+          )}
         </div>
 
         <div className="sidebar-right">
@@ -133,11 +278,7 @@ const Classroom: React.FC = () => {
             <h3 className="focus-subtitle">Ik bits Repind</h3>
             <p className="focus-text">Your crpentloettberntiert thaaike So incase</p>
           </div>
-          <div className="calendar-events">
-            <h3 className="focus-subtitle">Calendar Events</h3>
-            <div className="event-date">26im Jan 21, 2023</div>
-            <div className="event-time">Morbaat 78:60</div>
-          </div>
+          <CalendarSidebar />
           <div className="social-icons">
             <span className="social-icon">📅</span>
             <span className="social-icon">💬</span>

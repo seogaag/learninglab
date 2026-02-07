@@ -204,3 +204,29 @@
   color: #685A55;
   margin-top: 0.5rem;
 }
+
+.event-item {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #E9EADE;
+}
+
+.event-item:first-child {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0.5rem;
+}
+
+.event-title-small {
+  color: #57463D;
+  font-weight: 500;
+  margin-top: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.loading-text,
+.no-events {
+  color: #685A55;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}

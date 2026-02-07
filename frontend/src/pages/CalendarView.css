@@ -1,0 +1,134 @@
+.calendar-view {
+  width: 100%;
+}
+
+.calendar-controls {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.view-btn {
+  background: #F2EFED;
+  color: #57463D;
+  border: 2px solid #E9EADE;
+  padding: 0.5rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.view-btn:hover {
+  background: #E9EADE;
+  border-color: #89A230;
+}
+
+.view-btn.active {
+  background: #89A230;
+  color: white;
+  border-color: #89A230;
+}
+
+.events-list {
+  width: 100%;
+}
+
+.events-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.event-card {
+  background: #F2EFED;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #E9EADE;
+  transition: box-shadow 0.3s;
+}
+
+.event-card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.event-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.event-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #57463D;
+  margin: 0;
+}
+
+.event-status {
+  color: #89A230;
+  font-size: 1.2rem;
+}
+
+.event-description {
+  color: #685A55;
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.event-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.event-time,
+.event-location {
+  color: #685A55;
+  font-size: 0.9rem;
+}
+
+.event-time strong,
+.event-location strong {
+  color: #57463D;
+}
+
+.event-link {
+  color: #5DC6CF;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.event-link:hover {
+  color: #89A230;
+}
+
+.calendar-embed {
+  width: 100%;
+  min-height: 600px;
+  background: #F2EFED;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.loading-text,
+.error-text,
+.no-events,
+.no-courses {
+  padding: 2rem;
+  text-align: center;
+  color: #685A55;
+}
+
+.error-text {
+  color: #F16521;
+}
+
+.no-assignments {
+  padding: 1rem;
+  color: #685A55;
+  text-align: center;
+}

@@ -1,7 +1,44 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
+import { useAuth } from '../contexts/AuthContext'
+import { calendarApi, CalendarEvent } from '../services/api'
 import './Home.css'
 
 const Home: React.FC = () => {
+  const { token } = useAuth()
+  const [events, setEvents] = useState<CalendarEvent[]>([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (token) {
+      loadEvents()
+    }
+  }, [token])
+
+  const loadEvents = async () => {
+    if (!token) return
+    
+    setLoading(true)
+    try {
+      const data = await calendarApi.getEvents(token, 5)
+      setEvents(data)
+    } catch (err) {
+      console.error('Error loading events:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return ''
+    const date = new Date(dateString)
+    return date.toLocaleDateString('ko-KR', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
   return (
     <div className="home">
       <div className="hero-section">
@@ -69,8 +106,18 @@ const Home: React.FC = () => {
           </div>
           <div className="calendar-events">
             <h3 className="focus-subtitle">Calendar Events</h3>
-            <div className="event-date">26it~ Jan 21, 2023</div>
-            <div className="event-time">Morbaat78:60</div>
+            {loading ? (
+              <div className="loading-text">Loading...</div>
+            ) : events.length === 0 ? (
+              <div className="no-events">No upcoming events</div>
+            ) : (
+              events.map((event) => (
+                <div key={event.id} className="event-item">
+                  <div className="event-date">{formatDate(event.start?.dateTime || event.start?.date)}</div>
+                  <div className="event-title-small">{event.summary}</div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
