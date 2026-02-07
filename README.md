@@ -102,18 +102,26 @@ learninglab/
 
 2. **환경 변수 설정**
    
-   `backend/.env` 파일 생성:
+   `backend/.env` 파일 생성 (docker-compose.yml에서 자동으로 로드됨):
    ```env
+   # Database Configuration
    DATABASE_URL=postgresql://user:password@db:5432/insighthub
-   SECRET_KEY=your-secret-key-here
+   
+   # Security Configuration
+   SECRET_KEY=your-secret-key-here-change-in-production
    ALGORITHM=HS256
    ACCESS_TOKEN_EXPIRE_MINUTES=30
+   
+   # Google OAuth Configuration
    GOOGLE_CLIENT_ID=your-google-client-id
    GOOGLE_CLIENT_SECRET=your-google-client-secret
    GOOGLE_REDIRECT_URI=http://localhost:8000/auth/callback
    ```
+   
+   > **참고**: `backend/.env` 파일은 docker-compose.yml의 `env_file` 설정을 통해 자동으로 로드됩니다. 
+   > 모든 환경 변수는 이 파일에서 관리할 수 있습니다.
 
-   `frontend/.env` 파일 생성:
+   `frontend/.env` 파일 생성 (선택사항):
    ```env
    VITE_API_URL=http://localhost:8000
    ```
