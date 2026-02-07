@@ -1,20 +1,29 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { AuthProvider } from './contexts/AuthContext'
 import Layout from './components/Layout'
 import Home from './pages/Home'
 import Classroom from './pages/Classroom'
 import Community from './pages/Community'
+import AuthCallback from './pages/AuthCallback'
 
 function App() {
   return (
-    <Router>
-      <Layout>
+    <AuthProvider>
+      <Router>
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/learning" element={<Classroom />} />
-          <Route path="/community" element={<Community />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/*" element={
+            <Layout>
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/learning" element={<Classroom />} />
+                <Route path="/community" element={<Community />} />
+              </Routes>
+            </Layout>
+          } />
         </Routes>
-      </Layout>
-    </Router>
+      </Router>
+    </AuthProvider>
   )
 }
 

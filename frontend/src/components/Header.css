@@ -151,3 +151,29 @@
 .dropdown-item:hover {
   background: #E9EADE;
 }
+
+.dropdown-user-info {
+  padding: 0.5rem 0;
+}
+
+.dropdown-user-name {
+  font-weight: 600;
+  color: #57463D;
+  margin-bottom: 0.25rem;
+}
+
+.dropdown-user-email {
+  font-size: 0.85rem;
+  color: #685A55;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: #E9EADE;
+  margin: 0.5rem 0;
+}
+
+.loading-text {
+  color: white;
+  font-size: 0.9rem;
+}

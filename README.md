@@ -11,6 +11,7 @@ Insight Hub는 글로벌 마케팅 팀을 위한 통합 학습 및 커뮤니티 
 - **메인 페이지**: 플랫폼 소개 및 주요 콘텐츠 소개
 - **클래스룸 페이지**: 강의 수강, 학습 진도 추적, 코스 관리
 - **커뮤니티 허브**: 인사이트 공유, 파일 요청, 커뮤니티 게시판
+- **Google SSO 로그인**: Google 계정으로 간편 로그인
 
 ## 🛠 기술 스택
 
@@ -19,12 +20,14 @@ Insight Hub는 글로벌 마케팅 팀을 위한 통합 학습 및 커뮤니티 
 - **PostgreSQL**: 관계형 데이터베이스
 - **SQLAlchemy**: ORM
 - **Alembic**: 데이터베이스 마이그레이션
+- **Authlib**: OAuth 인증
 
 ### Frontend
 - **React**: 사용자 인터페이스 구축
 - **TypeScript**: 타입 안정성
 - **React Router**: 라우팅
 - **Axios**: HTTP 클라이언트
+- **Context API**: 인증 상태 관리
 
 ### DevOps
 - **Docker**: 컨테이너화
@@ -41,7 +44,10 @@ learninglab/
 │   │   ├── models/         # 데이터베이스 모델
 │   │   ├── schemas/        # Pydantic 스키마
 │   │   ├── api/            # API 라우터
+│   │   │   └── auth.py     # 인증 API
 │   │   ├── core/           # 설정 및 유틸리티
+│   │   │   ├── config.py   # 환경 설정
+│   │   │   └── security.py # 보안 유틸리티
 │   │   └── db/             # 데이터베이스 연결
 │   ├── requirements.txt
 │   ├── Dockerfile
@@ -49,10 +55,13 @@ learninglab/
 ├── frontend/               # React 프론트엔드
 │   ├── src/
 │   │   ├── components/     # 재사용 가능한 컴포넌트
+│   │   ├── contexts/       # Context API
+│   │   │   └── AuthContext.tsx # 인증 상태 관리
 │   │   ├── pages/          # 페이지 컴포넌트
 │   │   │   ├── Home/       # 메인 페이지
 │   │   │   ├── Classroom/  # 클래스룸 페이지
-│   │   │   └── Community/  # 커뮤니티 허브 페이지
+│   │   │   ├── Community/  # 커뮤니티 허브 페이지
+│   │   │   └── AuthCallback.tsx # OAuth 콜백 처리
 │   │   ├── services/       # API 서비스
 │   │   ├── hooks/          # 커스텀 훅
 │   │   └── App.tsx
@@ -70,6 +79,18 @@ learninglab/
 
 - Docker 및 Docker Compose 설치
 - Git 설치
+- Google Cloud Console에서 OAuth 2.0 클라이언트 ID 생성
+
+### Google OAuth 설정
+
+1. [Google Cloud Console](https://console.cloud.google.com/)에 접속
+2. 새 프로젝트 생성 또는 기존 프로젝트 선택
+3. "API 및 서비스" > "사용자 인증 정보"로 이동
+4. "사용자 인증 정보 만들기" > "OAuth 클라이언트 ID" 선택
+5. 애플리케이션 유형: "웹 애플리케이션"
+6. 승인된 리디렉션 URI 추가:
+   - `http://localhost:8000/auth/callback`
+7. 클라이언트 ID와 클라이언트 시크릿 복사
 
 ### 설치 및 실행
 
@@ -87,19 +108,29 @@ learninglab/
    SECRET_KEY=your-secret-key-here
    ALGORITHM=HS256
    ACCESS_TOKEN_EXPIRE_MINUTES=30
+   GOOGLE_CLIENT_ID=your-google-client-id
+   GOOGLE_CLIENT_SECRET=your-google-client-secret
+   GOOGLE_REDIRECT_URI=http://localhost:8000/auth/callback
    ```
 
    `frontend/.env` 파일 생성:
    ```env
-   REACT_APP_API_URL=http://localhost:8000
+   VITE_API_URL=http://localhost:8000
    ```
 
-3. **Docker Compose로 실행**
+3. **데이터베이스 마이그레이션**
+   ```bash
+   cd backend
+   alembic revision --autogenerate -m "Create users table"
+   alembic upgrade head
+   ```
+
+4. **Docker Compose로 실행**
    ```bash
    docker-compose up --build
    ```
 
-4. **애플리케이션 접속**
+5. **애플리케이션 접속**
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:8000
    - API 문서: http://localhost:8000/docs
@@ -120,11 +151,34 @@ npm install
 npm start
 ```
 
+## 🔐 인증
+
+### Google SSO 로그인
+
+1. "Sign in with Google" 버튼 클릭
+2. Google 계정 선택 및 권한 승인
+3. 자동으로 로그인 처리 및 사용자 정보 저장
+
+### 로그인 상태
+
+- **비로그인 상태**: "Sign in with Google" 버튼 표시
+- **로그인 상태**: 사용자 프로필 이미지, 이름, 드롭다운 메뉴 표시
+  - My Profile
+  - Settings
+  - Sign Out
+
 ## 📝 API 문서
 
 FastAPI의 자동 생성 API 문서:
 - Swagger UI: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
+
+### 주요 API 엔드포인트
+
+- `GET /auth/login` - Google OAuth 로그인 시작
+- `GET /auth/callback` - OAuth 콜백 처리
+- `GET /auth/me` - 현재 사용자 정보 조회
+- `POST /auth/logout` - 로그아웃
 
 ## 🗄 데이터베이스 마이그레이션
 
