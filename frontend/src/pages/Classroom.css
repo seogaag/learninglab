@@ -14,7 +14,7 @@
 
 .sidebar-left,
 .sidebar-right {
-  background: white;
+  background: #F2EFED;
   padding: 1.5rem;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -25,7 +25,7 @@
   font-size: 1.2rem;
   font-weight: 600;
   margin-bottom: 1rem;
-  color: #333;
+  color: #57463D;
 }
 
 .sidebar-menu {
@@ -43,7 +43,7 @@
 }
 
 .menu-item:hover {
-  color: #4CAF50;
+  color: #89A230;
 }
 
 .menu-text {
@@ -57,26 +57,26 @@
 }
 
 .menu-dot.yellow {
-  background: #FFC107;
+  background: #FFD55B;
 }
 
 .menu-dot.green {
-  background: #4CAF50;
+  background: #89A230;
 }
 
 .menu-check {
-  color: #4CAF50;
+  color: #89A230;
   font-weight: bold;
 }
 
 .copyright {
   font-size: 0.75rem;
-  color: #999;
+  color: #685A55;
   margin-top: auto;
 }
 
 .main-content-area {
-  background: white;
+  background: #F2EFED;
   padding: 1.5rem;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -86,13 +86,13 @@
   font-size: 1.5rem;
   font-weight: 600;
   margin-bottom: 1rem;
-  color: #333;
+  color: #57463D;
 }
 
 .tabs {
   display: flex;
   gap: 1rem;
-  border-bottom: 2px solid #f0f0f0;
+  border-bottom: 2px solid #E9EADE;
   margin-bottom: 1.5rem;
 }
 
@@ -102,19 +102,19 @@
   padding: 0.75rem 1.5rem;
   font-size: 1rem;
   cursor: pointer;
-  color: #666;
+  color: #685A55;
   border-bottom: 2px solid transparent;
   margin-bottom: -2px;
   transition: all 0.3s;
 }
 
 .tab:hover {
-  color: #4CAF50;
+  color: #89A230;
 }
 
 .tab.active {
-  color: #4CAF50;
-  border-bottom-color: #4CAF50;
+  color: #89A230;
+  border-bottom-color: #89A230;
 }
 
 .progress-section {
@@ -133,25 +133,25 @@
 
 .progress-title {
   font-weight: 600;
-  color: #333;
+  color: #57463D;
 }
 
 .progress-percent {
-  color: #666;
+  color: #685A55;
   font-size: 0.9rem;
 }
 
 .progress-bar {
   width: 100%;
   height: 8px;
-  background: #f0f0f0;
+  background: #E9EADE;
   border-radius: 4px;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #4CAF50, #45a049);
+  background: linear-gradient(90deg, #89A230, #718B29);
   border-radius: 4px;
   transition: width 0.3s;
 }
@@ -176,7 +176,7 @@
 .course-title {
   font-size: 1.2rem;
   font-weight: 600;
-  color: #333;
+  color: #57463D;
 }
 
 .course-content {
@@ -200,13 +200,13 @@
 }
 
 .course-description {
-  color: #666;
+  color: #685A55;
   line-height: 1.6;
   margin-bottom: 1rem;
 }
 
 .course-btn {
-  background: #4CAF50;
+  background: #89A230;
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -218,7 +218,7 @@
 }
 
 .course-btn:hover {
-  background: #45a049;
+  background: #718B29;
 }
 
 .course-modules {
@@ -231,7 +231,7 @@
   font-size: 1rem;
   font-weight: 600;
   margin-bottom: 0.75rem;
-  color: #333;
+  color: #57463D;
 }
 
 .modules-list {
@@ -240,13 +240,13 @@
 
 .module-item {
   padding: 0.5rem 0;
-  color: #666;
+  color: #685A55;
   cursor: pointer;
   transition: color 0.3s;
 }
 
 .module-item:hover {
-  color: #4CAF50;
+  color: #5DC6CF;
 }
 
 .focus-section {
@@ -257,11 +257,11 @@
   font-size: 1rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
-  color: #333;
+  color: #57463D;
 }
 
 .focus-text {
-  color: #666;
+  color: #685A55;
   line-height: 1.6;
 }
 
@@ -271,7 +271,7 @@
 
 .event-date,
 .event-time {
-  color: #666;
+  color: #685A55;
   margin-top: 0.5rem;
 }
 

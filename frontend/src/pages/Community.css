@@ -13,7 +13,7 @@
 }
 
 .sidebar-left {
-  background: white;
+  background: #F2EFED;
   padding: 1.5rem;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -24,7 +24,7 @@
   font-size: 1.2rem;
   font-weight: 600;
   margin-bottom: 1rem;
-  color: #333;
+  color: #57463D;
 }
 
 .sidebar-menu {
@@ -42,7 +42,7 @@
 }
 
 .menu-item:hover {
-  color: #4CAF50;
+  color: #89A230;
 }
 
 .menu-text {
@@ -50,18 +50,18 @@
 }
 
 .menu-check {
-  color: #4CAF50;
+  color: #89A230;
   font-size: 1.2rem;
 }
 
 .copyright {
   font-size: 0.75rem;
-  color: #999;
+  color: #685A55;
   margin-top: auto;
 }
 
 .main-content-area {
-  background: white;
+  background: #F2EFED;
   padding: 1.5rem;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -78,17 +78,17 @@
   font-size: 1.5rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
-  color: #333;
+  color: #57463D;
 }
 
 .section-subtitle {
   font-size: 1rem;
-  color: #666;
+  color: #685A55;
   font-weight: 400;
 }
 
 .new-post-btn {
-  background: #4CAF50;
+  background: #89A230;
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -99,7 +99,7 @@
 }
 
 .new-post-btn:hover {
-  background: #45a049;
+  background: #718B29;
 }
 
 .insights-cards {
@@ -138,11 +138,11 @@
   font-size: 1rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
-  color: #333;
+  color: #57463D;
 }
 
 .insight-description {
-  color: #666;
+  color: #685A55;
   font-size: 0.9rem;
   line-height: 1.5;
 }
@@ -158,21 +158,21 @@
 }
 
 .insights-table thead {
-  background: #f5f5f5;
+  background: #E9EADE;
 }
 
 .insights-table th {
   padding: 1rem;
   text-align: left;
   font-weight: 600;
-  color: #333;
+  color: #57463D;
   border-bottom: 2px solid #e0e0e0;
 }
 
 .insights-table td {
   padding: 1rem;
   border-bottom: 1px solid #e0e0e0;
-  color: #666;
+  color: #685A55;
 }
 
 .insights-table tbody tr:hover {
@@ -193,12 +193,12 @@
 }
 
 .page-info {
-  color: #666;
+  color: #685A55;
   font-size: 0.9rem;
 }
 
 .page-arrow {
-  background: #4CAF50;
+  background: #89A230;
   color: white;
   border: none;
   width: 36px;
@@ -213,7 +213,7 @@
 }
 
 .page-arrow:hover {
-  background: #45a049;
+  background: #718B29;
 }
 
 .social-footer {
@@ -226,12 +226,12 @@
 }
 
 .social-link {
-  color: #666;
+  color: #685A55;
   text-decoration: none;
   font-size: 0.9rem;
   transition: color 0.3s;
 }
 
 .social-link:hover {
-  color: #4CAF50;
+  color: #5DC6CF;
 }

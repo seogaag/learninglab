@@ -3,7 +3,7 @@
   top: 0;
   left: 0;
   right: 0;
-  background: white;
+  background: #89A230;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   z-index: 1000;
   height: 80px;
@@ -29,13 +29,13 @@
   align-items: center;
   gap: 0.5rem;
   text-decoration: none;
-  color: #333;
+  color: white;
 }
 
 .logo-icon {
   width: 32px;
   height: 32px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #718B29;
   color: white;
   display: flex;
   align-items: center;
@@ -48,6 +48,7 @@
 .logo-text {
   font-size: 1.5rem;
   font-weight: 600;
+  color: white;
 }
 
 .header-nav {
@@ -57,7 +58,7 @@
 
 .nav-link {
   text-decoration: none;
-  color: #666;
+  color: rgba(255, 255, 255, 0.9);
   font-weight: 500;
   padding: 0.5rem 1rem;
   border-radius: 4px;
@@ -65,13 +66,13 @@
 }
 
 .nav-link:hover {
-  color: #4CAF50;
-  background: #f0f0f0;
+  color: white;
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .nav-link.active {
-  color: #4CAF50;
-  background: #f0f0f0;
+  color: white;
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .header-right {
@@ -81,7 +82,7 @@
 }
 
 .sign-in-btn {
-  background: #20B2AA;
+  background: #718B29;
   color: white;
   border: none;
   padding: 0.6rem 1.5rem;
@@ -92,7 +93,7 @@
 }
 
 .sign-in-btn:hover {
-  background: #1a9b94;
+  background: #5a6f21;
 }
 
 .user-profile {
@@ -107,7 +108,7 @@
 }
 
 .user-profile:hover {
-  background: #f0f0f0;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .profile-img {
@@ -119,19 +120,19 @@
 
 .profile-name {
   font-weight: 500;
-  color: #333;
+  color: white;
 }
 
 .dropdown-arrow {
   font-size: 0.7rem;
-  color: #666;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .dropdown-menu {
   position: absolute;
   top: 100%;
   right: 0;
-  background: white;
+  background: #F2EFED;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   border-radius: 6px;
   margin-top: 0.5rem;
@@ -143,10 +144,10 @@
   display: block;
   padding: 0.75rem 1rem;
   text-decoration: none;
-  color: #333;
+  color: #57463D;
   transition: background 0.3s;
 }
 
 .dropdown-item:hover {
-  background: #f0f0f0;
+  background: #E9EADE;
 }
