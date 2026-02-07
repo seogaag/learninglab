@@ -5,12 +5,14 @@ from authlib.integrations.starlette_client import OAuth
 from starlette.config import Config
 from app.db.database import get_db
 from app.models.user import User
+from app.models.oauth_state import OAuthState
 from app.schemas.user import Token, UserResponse
 from app.core.security import create_access_token
 from app.core.config import settings
 from datetime import timedelta
 import httpx
 import secrets
+import urllib.parse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -34,7 +36,7 @@ if settings.GOOGLE_CLIENT_ID and settings.GOOGLE_CLIENT_SECRET:
     )
 
 @router.get("/login")
-async def login(request: Request):
+async def login(request: Request, db: Session = Depends(get_db)):
     """Google OAuth 로그인 시작"""
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
         raise HTTPException(
@@ -44,12 +46,14 @@ async def login(request: Request):
     
     redirect_uri = settings.GOOGLE_REDIRECT_URI
     
-    # 세션 초기화 (세션이 제대로 작동하도록)
-    if '_session_id' not in request.session:
-        request.session['_session_id'] = secrets.token_urlsafe(32)
+    # State를 수동으로 생성하고 데이터베이스에 저장
+    state = secrets.token_urlsafe(32)
+    oauth_state = OAuthState(state=state)
+    db.add(oauth_state)
+    db.commit()
     
-    # authorize_redirect 호출 (state는 authlib이 자동으로 생성하고 세션에 저장)
-    return await oauth.google.authorize_redirect(request, redirect_uri)
+    # authorize_redirect에 state를 명시적으로 전달
+    return await oauth.google.authorize_redirect(request, redirect_uri, state=state)
 
 @router.get("/callback")
 async def callback(request: Request, code: str = None, state: str = None, error: str = None, db: Session = Depends(get_db)):
@@ -73,20 +77,72 @@ async def callback(request: Request, code: str = None, state: str = None, error:
             detail="Authorization code not provided"
         )
     
+    # State 검증 (데이터베이스에서 확인)
+    oauth_state = db.query(OAuthState).filter(OAuthState.state == state).first()
+    if not oauth_state:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid state parameter. Please try logging in again."
+        )
+    
+    # State 만료 확인 (10분)
+    if oauth_state.is_expired(max_age=600):
+        db.delete(oauth_state)
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="State has expired. Please try logging in again."
+        )
+    
+    # State 검증 후 데이터베이스에서 제거
+    db.delete(oauth_state)
+    db.commit()
+    
     try:
-        # 토큰 교환 (state 검증은 authlib이 자동으로 처리)
-        token = await oauth.google.authorize_access_token(request)
+        # authlib의 state 검증을 우회하기 위해 직접 토큰 교환
+        # authorize_access_token 대신 직접 OAuth 토큰 엔드포인트 호출
+        async with httpx.AsyncClient() as client:
+            token_response = await client.post(
+                'https://oauth2.googleapis.com/token',
+                data={
+                    'code': code,
+                    'client_id': settings.GOOGLE_CLIENT_ID,
+                    'client_secret': settings.GOOGLE_CLIENT_SECRET,
+                    'redirect_uri': settings.GOOGLE_REDIRECT_URI,
+                    'grant_type': 'authorization_code'
+                }
+            )
+            
+            if token_response.status_code != 200:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Failed to exchange token: {token_response.text}"
+                )
+            
+            token_data = token_response.json()
+            access_token = token_data.get('access_token')
+            refresh_token = token_data.get('refresh_token')
+            
+            if not access_token:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Failed to get access token from Google"
+                )
         
         # 사용자 정보 가져오기
-        user_info = token.get('userinfo')
-        if not user_info:
-            # userinfo가 없으면 직접 가져오기
-            async with httpx.AsyncClient() as client:
-                response = await client.get(
-                    'https://www.googleapis.com/oauth2/v2/userinfo',
-                    headers={'Authorization': f"Bearer {token['access_token']}"}
+        async with httpx.AsyncClient() as client:
+            user_response = await client.get(
+                'https://www.googleapis.com/oauth2/v2/userinfo',
+                headers={'Authorization': f"Bearer {access_token}"}
+            )
+            
+            if user_response.status_code != 200:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Failed to get user information from Google"
                 )
-                user_info = response.json()
+            
+            user_info = user_response.json()
         
         google_id = user_info.get('sub')
         email = user_info.get('email')
@@ -98,9 +154,6 @@ async def callback(request: Request, code: str = None, state: str = None, error:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Failed to get user information from Google"
             )
-        
-        # Refresh token 저장
-        refresh_token = token.get('refresh_token')
         
         # 사용자 조회 또는 생성
         user = db.query(User).filter(User.google_id == google_id).first()
@@ -126,13 +179,13 @@ async def callback(request: Request, code: str = None, state: str = None, error:
             db.refresh(user)
         
         # JWT 토큰 생성
-        access_token = create_access_token(
+        jwt_token = create_access_token(
             data={"sub": str(user.id), "email": user.email},
             expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         )
         
         # 프론트엔드로 리다이렉트 (토큰 포함)
-        frontend_url = f"http://localhost:3000/auth/callback?token={access_token}"
+        frontend_url = f"http://localhost:3000/auth/callback?token={jwt_token}"
         return RedirectResponse(url=frontend_url)
         
     except Exception as e:
