@@ -10,6 +10,7 @@ from app.core.security import create_access_token
 from app.core.config import settings
 from datetime import timedelta
 import httpx
+import secrets
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -27,7 +28,9 @@ if settings.GOOGLE_CLIENT_ID and settings.GOOGLE_CLIENT_SECRET:
             'scope': 'openid email profile https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.coursework.me.readonly https://www.googleapis.com/auth/calendar.readonly',
             'access_type': 'offline',
             'prompt': 'consent'
-        }
+        },
+        # 리디렉션 URI 명시적으로 설정
+        redirect_uri=settings.GOOGLE_REDIRECT_URI
     )
 
 @router.get("/login")
@@ -39,11 +42,17 @@ async def login(request: Request):
             detail="Google OAuth is not configured"
         )
     
-    redirect_uri = f"http://localhost:8000/auth/callback"
+    redirect_uri = settings.GOOGLE_REDIRECT_URI
+    
+    # 세션 초기화 (세션이 제대로 작동하도록)
+    if '_session_id' not in request.session:
+        request.session['_session_id'] = secrets.token_urlsafe(32)
+    
+    # authorize_redirect 호출 (state는 authlib이 자동으로 생성하고 세션에 저장)
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 @router.get("/callback")
-async def callback(request: Request, code: str, db: Session = Depends(get_db)):
+async def callback(request: Request, code: str = None, state: str = None, error: str = None, db: Session = Depends(get_db)):
     """Google OAuth 콜백 처리"""
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
         raise HTTPException(
@@ -51,8 +60,21 @@ async def callback(request: Request, code: str, db: Session = Depends(get_db)):
             detail="Google OAuth is not configured"
         )
     
+    # 에러 처리
+    if error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"OAuth error: {error}"
+        )
+    
+    if not code:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Authorization code not provided"
+        )
+    
     try:
-        # 토큰 교환
+        # 토큰 교환 (state 검증은 authlib이 자동으로 처리)
         token = await oauth.google.authorize_access_token(request)
         
         # 사용자 정보 가져오기

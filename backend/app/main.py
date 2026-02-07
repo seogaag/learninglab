@@ -10,10 +10,13 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Session Middleware (OAuth를 위해 필요)
+# Session Middleware (OAuth를 위해 필요, CORS보다 먼저)
 app.add_middleware(
     SessionMiddleware,
-    secret_key=settings.SECRET_KEY
+    secret_key=settings.SECRET_KEY,
+    max_age=3600,  # 1시간
+    same_site="lax",  # 개발 환경에서는 lax 사용
+    https_only=False  # 개발 환경에서는 False
 )
 
 # CORS 설정
