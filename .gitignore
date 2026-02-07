@@ -78,3 +78,6 @@ htmlcov/
 *.tmp
 
 perf/*
+scripts/*
+docs/*
+uploads/*

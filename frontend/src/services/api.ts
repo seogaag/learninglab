@@ -98,6 +98,11 @@ export const classroomApi = {
     return response.data
   },
 
+  getWorkspaceCourses: async (): Promise<Course[]> => {
+    const response = await apiClient.get('/classroom/workspace-courses')
+    return response.data
+  },
+
   getCoursework: async (courseId: string, token: string): Promise<Coursework[]> => {
     const response = await apiClient.get(`/classroom/courses/${courseId}/coursework`, {
       params: { token }
@@ -118,6 +123,23 @@ export const calendarApi = {
     const response = await apiClient.get('/calendar/embed-url', {
       params: { token }
     })
+    return response.data
+  },
+}
+
+export interface Banner {
+  id: number
+  title: string
+  subtitle?: string
+  image_url: string
+  link_url?: string
+  order: number
+  is_active: boolean
+}
+
+export const publicApi = {
+  getBanners: async (): Promise<Banner[]> => {
+    const response = await apiClient.get('/public/banners')
     return response.data
   },
 }

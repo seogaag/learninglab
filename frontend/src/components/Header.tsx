@@ -42,6 +42,12 @@ const Header: React.FC = () => {
           >
             Community
           </Link>
+          <Link 
+            to="/hub" 
+            className={location.pathname === '/hub' ? 'nav-link active' : 'nav-link'}
+          >
+            Hub
+          </Link>
         </nav>
 
         <div className="header-right">

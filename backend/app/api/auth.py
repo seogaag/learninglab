@@ -9,10 +9,16 @@ from app.models.oauth_state import OAuthState
 from app.schemas.user import Token, UserResponse
 from app.core.security import create_access_token
 from app.core.config import settings
+from app.core.validation import (
+    validate_oauth_code,
+    validate_state,
+    validate_email,
+    validate_google_id,
+    sanitize_string
+)
 from datetime import timedelta
 import httpx
-import secrets
-import urllib.parse
+import traceback
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -30,13 +36,11 @@ if settings.GOOGLE_CLIENT_ID and settings.GOOGLE_CLIENT_SECRET:
             'scope': 'openid email profile https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.coursework.me.readonly https://www.googleapis.com/auth/calendar.readonly',
             'access_type': 'offline',
             'prompt': 'consent'
-        },
-        # 리디렉션 URI 명시적으로 설정
-        redirect_uri=settings.GOOGLE_REDIRECT_URI
+        }
     )
 
 @router.get("/login")
-async def login(request: Request, db: Session = Depends(get_db)):
+async def login(request: Request):
     """Google OAuth 로그인 시작"""
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
         raise HTTPException(
@@ -44,202 +48,297 @@ async def login(request: Request, db: Session = Depends(get_db)):
             detail="Google OAuth is not configured"
         )
     
-    redirect_uri = settings.GOOGLE_REDIRECT_URI
+    redirect_uri = f"http://localhost:8000/auth/callback"
     
-    # State를 수동으로 생성하고 데이터베이스에 저장
+    # refresh_token을 확실히 받기 위해 직접 URL 생성
+    from urllib.parse import urlencode
+    scope = (
+        "openid email profile "
+        "https://www.googleapis.com/auth/classroom.courses.readonly "
+        "https://www.googleapis.com/auth/classroom.coursework.me.readonly "
+        "https://www.googleapis.com/auth/calendar.readonly"
+    )
+    
+    # state 파라미터 생성 (CSRF 방지) - 데이터베이스에 저장
+    import secrets
+    
     state = secrets.token_urlsafe(32)
-    oauth_state = OAuthState(state=state)
-    db.add(oauth_state)
-    db.commit()
     
-    # authorize_redirect에 state를 명시적으로 전달
-    return await oauth.google.authorize_redirect(request, redirect_uri, state=state)
+    # 데이터베이스에 state 저장 (세션 대신)
+    db_session = next(get_db())
+    try:
+        oauth_state = OAuthState(state=state)
+        db_session.add(oauth_state)
+        db_session.commit()
+        print(f"[AUTH] State saved to database: {state}")
+    except Exception as e:
+        db_session.rollback()
+        print(f"[AUTH] Failed to save state to database: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to initialize login"
+        )
+    finally:
+        db_session.close()
+    
+    auth_url = (
+        f"https://accounts.google.com/o/oauth2/v2/auth?"
+        f"client_id={settings.GOOGLE_CLIENT_ID}&"
+        f"redirect_uri={redirect_uri}&"
+        f"response_type=code&"
+        f"scope={scope}&"
+        f"access_type=offline&"  # refresh_token을 받기 위해 필수
+        f"prompt=consent&"  # 항상 동의 화면 표시
+        f"state={state}"
+    )
+    
+    print(f"[AUTH] Generated OAuth URL with prompt=consent and access_type=offline")
+    return RedirectResponse(url=auth_url)
 
 @router.get("/callback")
-async def callback(request: Request, code: str = None, state: str = None, error: str = None, db: Session = Depends(get_db)):
-    """Google OAuth 콜백 처리"""
+async def callback(request: Request, code: str, state: str = None, db: Session = Depends(get_db)):
+    """Google OAuth 콜백 처리 (보안 강화)"""
+    print(f"[AUTH] Callback received - code: {code[:20]}..., state: {state}")
+    
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Google OAuth is not configured"
         )
     
-    # 에러 처리
-    if error:
+    # 입력값 검증 (XSS 및 Injection 방지)
+    try:
+        print(f"[AUTH] Validating input parameters...")
+        code = validate_oauth_code(code)
+        if state:
+            state = validate_state(state)
+        print(f"[AUTH] Input validation passed")
+    except ValueError as e:
+        print(f"[AUTH] Input validation failed: {e}")
+        print(f"[AUTH] Traceback: {traceback.format_exc()}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"OAuth error: {error}"
+            detail="Invalid request parameters"
         )
     
-    if not code:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Authorization code not provided"
-        )
-    
-    # State 검증 (데이터베이스에서 확인)
+    # CSRF 검증 - 데이터베이스에서 확인
+    print(f"[AUTH] Checking CSRF state in database...")
     oauth_state = db.query(OAuthState).filter(OAuthState.state == state).first()
+    
     if not oauth_state:
+        print(f"[AUTH] CSRF validation failed. State not found in database: {state}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid state parameter. Please try logging in again."
         )
     
-    # State 만료 확인 (10분)
-    if oauth_state.is_expired(max_age=600):
-        db.delete(oauth_state)
-        db.commit()
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="State has expired. Please try logging in again."
-        )
+    # 오래된 state 삭제 (5분 이상 된 것)
+    from datetime import datetime, timedelta, timezone
+    expired_time = datetime.now(timezone.utc) - timedelta(minutes=5)
+    db.query(OAuthState).filter(OAuthState.created_at < expired_time).delete()
     
-    # State 검증 후 데이터베이스에서 제거
+    # state 사용 후 제거 (재사용 방지)
     db.delete(oauth_state)
     db.commit()
+    print(f"[AUTH] CSRF validation passed and state removed")
     
     try:
-        # authlib의 state 검증을 우회하기 위해 직접 토큰 교환
-        # authorize_access_token 대신 직접 OAuth 토큰 엔드포인트 호출
+        # 직접 토큰 교환 (refresh_token을 확실히 받기 위해)
+        redirect_uri = f"http://localhost:8000/auth/callback"
+        token_url = 'https://oauth2.googleapis.com/token'
+        
         async with httpx.AsyncClient() as client:
             token_response = await client.post(
-                'https://oauth2.googleapis.com/token',
+                token_url,
                 data={
                     'code': code,
                     'client_id': settings.GOOGLE_CLIENT_ID,
                     'client_secret': settings.GOOGLE_CLIENT_SECRET,
-                    'redirect_uri': settings.GOOGLE_REDIRECT_URI,
+                    'redirect_uri': redirect_uri,
                     'grant_type': 'authorization_code'
                 }
             )
             
             if token_response.status_code != 200:
+                print(f"[AUTH] Token exchange failed: {token_response.status_code} - {token_response.text}")
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Failed to exchange token: {token_response.text}"
+                    detail=f"Token exchange failed: {token_response.text}"
                 )
             
             token_data = token_response.json()
-            access_token = token_data.get('access_token')
-            refresh_token = token_data.get('refresh_token')
-            
-            if not access_token:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Failed to get access token from Google"
-                )
+            print(f"[AUTH] Token exchange response keys: {list(token_data.keys())}")
+            print(f"[AUTH] Refresh token present: {'refresh_token' in token_data}")
         
-        # 사용자 정보 가져오기
-        # Google OAuth2 v2 userinfo 엔드포인트 사용
-        async with httpx.AsyncClient() as client:
-            user_response = await client.get(
-                'https://www.googleapis.com/oauth2/v2/userinfo',
-                headers={
-                    'Authorization': f"Bearer {access_token}",
-                    'Accept': 'application/json'
-                },
-                timeout=10.0
-            )
-            
-            print(f"User info API response: Status {user_response.status_code}")
-            
-            if user_response.status_code != 200:
-                error_text = user_response.text
-                print(f"User info retrieval failed: Status {user_response.status_code}, Response: {error_text}")
-                # 401 Unauthorized인 경우 토큰 문제
-                if user_response.status_code == 401:
-                    raise HTTPException(
-                        status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail="Invalid access token. Please try logging in again."
-                    )
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Failed to retrieve user information from Google (Status: {user_response.status_code})"
-                )
-            
-            try:
-                user_info = user_response.json()
-                print(f"User info received: {list(user_info.keys())}")
-            except Exception as json_error:
-                print(f"Failed to parse user info JSON: {json_error}")
-                print(f"Response text: {user_response.text[:200]}")
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid response format from Google userinfo API"
-                )
+        access_token = token_data.get('access_token')
+        refresh_token = token_data.get('refresh_token')
         
-        google_id = user_info.get('sub') or user_info.get('id')
-        email = user_info.get('email')
-        name = user_info.get('name', '')
-        picture = user_info.get('picture')
+        print(f"[AUTH] Access token: {'present' if access_token else 'NOT PRESENT'}")
+        print(f"[AUTH] Refresh token: {'present' if refresh_token else 'NOT PRESENT'}")
         
-        print(f"Extracted user data: google_id={google_id}, email={email}, name={name}")
-        
-        if not google_id or not email:
-            print(f"Missing required fields: google_id={google_id}, email={email}")
-            print(f"Full user_info: {user_info}")
+        if not access_token:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Failed to get required user information from Google (missing id or email)"
+                detail="Failed to get access token"
             )
         
-        # 사용자 조회 또는 생성
-        user = db.query(User).filter(User.google_id == google_id).first()
-        if not user:
-            user = User(
-                google_id=google_id,
-                email=email,
-                name=name,
-                picture=picture,
-                google_refresh_token=refresh_token
+        # 사용자 정보 가져오기 (id_token에서 먼저 시도, 없으면 userinfo API 사용)
+        print(f"[AUTH] Fetching user info from Google...")
+        
+        # id_token에서 사용자 정보 추출 시도
+        google_id = None
+        email = None
+        name = ''
+        picture = None
+        
+        if 'id_token' in token_data:
+            try:
+                import base64
+                import json
+                # JWT는 base64url로 인코딩되어 있음
+                id_token = token_data['id_token']
+                # JWT는 .으로 구분된 3부분: header.payload.signature
+                parts = id_token.split('.')
+                if len(parts) >= 2:
+                    # payload 디코딩
+                    payload_part = parts[1]
+                    # base64url 패딩 추가
+                    padding = 4 - len(payload_part) % 4
+                    if padding != 4:
+                        payload_part += '=' * padding
+                    # base64 디코딩
+                    decoded = base64.urlsafe_b64decode(payload_part)
+                    id_token_payload = json.loads(decoded)
+                    print(f"[AUTH] Decoded id_token payload keys: {list(id_token_payload.keys())}")
+                    
+                    google_id = id_token_payload.get('sub')
+                    email = id_token_payload.get('email')
+                    name = id_token_payload.get('name', '')
+                    picture = id_token_payload.get('picture')
+                    print(f"[AUTH] User info from id_token: google_id={google_id}, email={email}")
+            except Exception as e:
+                print(f"[AUTH] Failed to decode id_token: {e}")
+        
+        # id_token에서 정보를 못 가져왔으면 userinfo API 사용
+        if not google_id or not email:
+            print(f"[AUTH] Fetching from userinfo API...")
+            async with httpx.AsyncClient() as client:
+                user_info_response = await client.get(
+                    'https://www.googleapis.com/oauth2/v3/userinfo',
+                    headers={'Authorization': f"Bearer {access_token}"}
+                )
+                if user_info_response.status_code != 200:
+                    print(f"[AUTH] Failed to get user info: {user_info_response.status_code} - {user_info_response.text}")
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Failed to get user information from Google"
+                    )
+                user_info = user_info_response.json()
+                print(f"[AUTH] User info API response keys: {list(user_info.keys())}")
+                print(f"[AUTH] User info API response: {user_info}")
+                
+                # userinfo API에서 가져오기
+                google_id = user_info.get('sub') or user_info.get('id')
+                email = user_info.get('email')
+                name = user_info.get('name', '')
+                picture = user_info.get('picture')
+                print(f"[AUTH] User info from API: google_id={google_id}, email={email}")
+        
+        if not google_id or not email:
+            print(f"[AUTH] Missing user info: google_id={google_id}, email={email}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to get user information from Google"
             )
-            db.add(user)
-            db.commit()
-            db.refresh(user)
-        else:
-            # 정보 업데이트
-            user.email = email
-            user.name = name
-            user.picture = picture
-            if refresh_token:
-                user.google_refresh_token = refresh_token
-            db.commit()
-            db.refresh(user)
+        
+        # 입력값 검증 및 정리 (XSS 방지)
+        print(f"[AUTH] Validating user data...")
+        try:
+            google_id = validate_google_id(google_id)
+            email = validate_email(email)
+            name = sanitize_string(name, max_length=255) if name else ''
+            picture = sanitize_string(picture, max_length=500) if picture else None
+            print(f"[AUTH] User data validation passed")
+        except ValueError as e:
+            print(f"[AUTH] User data validation failed: {e}")
+            print(f"[AUTH] Traceback: {traceback.format_exc()}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid user data received from Google"
+            )
+        
+        # Refresh token은 이미 위에서 가져옴
+        
+        # 사용자 조회 또는 생성 (SQL Injection 방지: SQLAlchemy ORM 사용)
+        print(f"[AUTH] Saving user to database...")
+        try:
+            user = db.query(User).filter(User.google_id == google_id).first()
+            if not user:
+                print(f"[AUTH] Creating new user: {email}")
+                user = User(
+                    google_id=google_id,
+                    email=email,
+                    name=name,
+                    picture=picture,
+                    google_refresh_token=refresh_token
+                )
+                db.add(user)
+                db.commit()
+                db.refresh(user)
+                print(f"[AUTH] New user created with refresh_token: {'YES' if user.google_refresh_token else 'NO'}")
+            else:
+                print(f"[AUTH] Updating existing user: {email}")
+                print(f"[AUTH] Existing refresh_token: {'YES' if user.google_refresh_token else 'NO'}")
+                # 정보 업데이트
+                user.email = email
+                user.name = name
+                user.picture = picture
+                # refresh_token이 있으면 업데이트 (없으면 기존 것 유지)
+                if refresh_token:
+                    print(f"[AUTH] Updating refresh_token")
+                    user.google_refresh_token = refresh_token
+                else:
+                    print(f"[AUTH] No refresh_token in response, keeping existing one if available")
+                db.commit()
+                db.refresh(user)
+                print(f"[AUTH] User updated, refresh_token: {'YES' if user.google_refresh_token else 'NO'}")
+        except Exception as db_error:
+            db.rollback()
+            print(f"[AUTH] Database error: {db_error}")
+            print(f"[AUTH] Error type: {type(db_error).__name__}")
+            print(f"[AUTH] Traceback: {traceback.format_exc()}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to save user information"
+            )
         
         # JWT 토큰 생성
-        jwt_token = create_access_token(
+        print(f"[AUTH] Creating JWT token...")
+        access_token = create_access_token(
             data={"sub": str(user.id), "email": user.email},
             expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         )
+        print(f"[AUTH] JWT token created successfully")
         
         # 프론트엔드로 리다이렉트 (토큰 포함)
-        frontend_url = f"http://localhost:3000/auth/callback?token={jwt_token}"
+        frontend_url = f"http://localhost:3000/auth/callback?token={access_token}"
+        print(f"[AUTH] Redirecting to frontend...")
         return RedirectResponse(url=frontend_url)
         
     except HTTPException:
         # HTTPException은 그대로 전달
         raise
     except Exception as e:
-        # 상세한 에러 정보 로깅 (보안을 위해 민감한 정보는 제외)
-        import traceback
+        # 상세한 에러 로깅 (서버 로그에만 기록)
         error_type = type(e).__name__
         error_message = str(e) if str(e) else "Unknown error"
+        print(f"[AUTH] Authentication error: {error_type}: {error_message}")
+        print(f"[AUTH] Traceback: {traceback.format_exc()}")
         
-        # 로그에만 상세 정보 기록 (프로덕션에서는 로깅 시스템 사용)
-        print(f"OAuth callback error: {error_type}: {error_message}")
-        print(f"Traceback: {traceback.format_exc()}")
-        
-        # 클라이언트에는 일반적인 메시지만 전달 (보안)
-        if "code" in error_message.lower() or "token" in error_message.lower():
-            detail_message = "Authentication failed: Invalid authorization code or token exchange failed"
-        elif "user" in error_message.lower() or "info" in error_message.lower():
-            detail_message = "Authentication failed: Unable to retrieve user information"
-        else:
-            detail_message = f"Authentication failed: {error_type}"
-        
+        # 클라이언트에는 일반적인 메시지만 전달 (보안: 민감한 정보 노출 방지)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=detail_message
+            detail="Authentication failed. Please try again."
         )
 
 @router.get("/me", response_model=UserResponse)
@@ -247,9 +346,10 @@ async def get_current_user(
     token: str,
     db: Session = Depends(get_db)
 ):
-    """현재 사용자 정보 조회"""
+    """현재 사용자 정보 조회 (보안 강화)"""
     from app.core.security import verify_token
     
+    # 토큰 검증
     payload = verify_token(token)
     if not payload:
         raise HTTPException(
@@ -257,16 +357,41 @@ async def get_current_user(
             detail="Invalid token"
         )
     
-    user_id = payload.get("sub")
-    user = db.query(User).filter(User.id == int(user_id)).first()
-    
-    if not user:
+    # 사용자 ID 검증 (SQL Injection 방지)
+    try:
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token payload"
+            )
+        
+        # 숫자로 변환 가능한지 확인
+        user_id_int = int(user_id)
+        if user_id_int <= 0:
+            raise ValueError("Invalid user ID")
+        
+        # SQLAlchemy ORM 사용 (SQL Injection 방지)
+        user = db.query(User).filter(User.id == user_id_int).first()
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        return user
+    except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token"
         )
-    
-    return user
+    except Exception as e:
+        print(f"[AUTH] Error getting user: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve user information"
+        )
 
 @router.post("/logout")
 async def logout():

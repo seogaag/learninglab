@@ -6,44 +6,53 @@ import './CalendarView.css'
 const CalendarView: React.FC = () => {
   const { token } = useAuth()
   const [events, setEvents] = useState<CalendarEvent[]>([])
-  const [embedUrl, setEmbedUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [viewMode, setViewMode] = useState<'list' | 'embed'>('list')
 
   useEffect(() => {
     if (token) {
       loadEvents()
-      loadEmbedUrl()
     }
   }, [token])
 
   const loadEvents = async () => {
-    if (!token) return
+    if (!token) {
+      console.log('[CalendarView] No token, skipping load')
+      return
+    }
     
+    console.log('[CalendarView] Starting to load events...')
     setLoading(true)
     setError(null)
     try {
       const data = await calendarApi.getEvents(token, 10)
-      setEvents(data)
+      console.log('[CalendarView] Events loaded:', data?.length || 0)
+      setEvents(data || [])
+      
+      // 데이터가 없으면 에러가 아니라 정상적인 상태
+      if (!data || data.length === 0) {
+        setError(null)
+        console.log('[CalendarView] No events found (this is normal if user has no events)')
+      }
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to load calendar events')
-      console.error('Error loading events:', err)
+      const errorMsg = err.response?.data?.detail || err.message || 'Failed to load calendar events'
+      console.error('[CalendarView] Error loading events:', err)
+      console.error('[CalendarView] Error response:', err.response)
+      
+      // 403 에러는 권한 문제
+      if (err.response?.status === 403 || errorMsg.includes('403') || errorMsg.includes('Forbidden')) {
+        setError('Calendar API 권한이 없습니다. Google 계정에서 캘린더 권한을 확인해주세요.')
+      } else if (errorMsg.includes('refresh token') || errorMsg.includes('re-authenticate')) {
+        setError('refresh_token_needed')
+      } else {
+        setError(errorMsg)
+      }
     } finally {
       setLoading(false)
+      console.log('[CalendarView] Load completed')
     }
   }
 
-  const loadEmbedUrl = async () => {
-    if (!token) return
-    
-    try {
-      const data = await calendarApi.getEmbedUrl(token)
-      setEmbedUrl(data.embed_url)
-    } catch (err: any) {
-      console.error('Error loading embed URL:', err)
-    }
-  }
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return ''
@@ -59,92 +68,95 @@ const CalendarView: React.FC = () => {
 
   return (
     <div className="calendar-view">
-      <div className="calendar-controls">
-        <button 
-          className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
-          onClick={() => setViewMode('list')}
+      <div className="calendar-header">
+        <h3 className="calendar-title">Upcoming Events</h3>
+        <a 
+          href="https://calendar.google.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="calendar-link-button"
         >
-          List View
-        </button>
-        <button 
-          className={`view-btn ${viewMode === 'embed' ? 'active' : ''}`}
-          onClick={() => setViewMode('embed')}
-        >
-          Calendar View
-        </button>
+          Open Google Calendar →
+        </a>
       </div>
 
-      {viewMode === 'list' ? (
-        <div className="events-list">
-          {loading && events.length === 0 ? (
-            <div className="loading-text">Loading events...</div>
-          ) : error ? (
-            <div className="error-text">{error}</div>
-          ) : events.length === 0 ? (
-            <div className="no-events">No upcoming events</div>
-          ) : (
-            <div className="events-container">
-              {events.map((event) => (
-                <div key={event.id} className="event-card">
-                  <div className="event-header">
-                    <h4 className="event-title">{event.summary}</h4>
-                    {event.status === 'confirmed' && (
-                      <span className="event-status">✓</span>
+      <div className="events-list">
+        {loading && events.length === 0 ? (
+          <div className="loading-text">Loading events...</div>
+        ) : error ? (
+          <div className="error-message">
+            <p>{error}</p>
+            {error.includes('권한') && (
+              <a 
+                href="https://calendar.google.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="calendar-link-button"
+                style={{ marginTop: '1rem', display: 'inline-block' }}
+              >
+                Google Calendar에서 직접 확인하기
+              </a>
+            )}
+          </div>
+        ) : events.length === 0 ? (
+          <div className="no-events-container">
+            <div className="no-events-message">
+              <h3>다가오는 일정이 없습니다</h3>
+              <p>Google Calendar에 일정이 없거나, 최근 30일 내 일정이 없습니다.</p>
+              <a 
+                href="https://calendar.google.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="calendar-link-button"
+              >
+                Google Calendar 열기
+              </a>
+            </div>
+          </div>
+        ) : (
+          <div className="course-cards">
+            {events.map((event) => (
+              <div key={event.id} className="course-card">
+                <div className="course-header">
+                  <h3 className="course-title">{event.summary}</h3>
+                </div>
+                <div className="course-content">
+                  <div className="course-info">
+                    {event.description && (
+                      <p className="course-description">{event.description}</p>
                     )}
-                  </div>
-                  {event.description && (
-                    <p className="event-description">{event.description}</p>
-                  )}
-                  <div className="event-details">
                     {event.start && (
-                      <div className="event-time">
-                        <strong>Start:</strong> {formatDate(event.start.dateTime || event.start.date)}
-                      </div>
+                      <p className="course-section">
+                        Start: {formatDate(event.start.dateTime || event.start.date)}
+                      </p>
                     )}
                     {event.end && (
-                      <div className="event-time">
-                        <strong>End:</strong> {formatDate(event.end.dateTime || event.end.date)}
-                      </div>
+                      <p className="course-section">
+                        End: {formatDate(event.end.dateTime || event.end.date)}
+                      </p>
                     )}
                     {event.location && (
-                      <div className="event-location">
-                        <strong>Location:</strong> {event.location}
-                      </div>
+                      <p className="course-section">
+                        Location: {event.location}
+                      </p>
+                    )}
+                    {event.htmlLink && (
+                      <a 
+                        href={event.htmlLink} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="course-btn"
+                      >
+                        VIEW EVENT
+                      </a>
                     )}
                   </div>
-                  {event.htmlLink && (
-                    <a 
-                      href={event.htmlLink} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="event-link"
-                    >
-                      Open in Google Calendar →
-                    </a>
-                  )}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="calendar-embed">
-          {embedUrl ? (
-            <iframe
-              src={embedUrl}
-              style={{
-                width: '100%',
-                height: '600px',
-                border: 'none',
-                borderRadius: '8px'
-              }}
-              title="Google Calendar"
-            />
-          ) : (
-            <div className="loading-text">Loading calendar...</div>
-          )}
-        </div>
-      )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

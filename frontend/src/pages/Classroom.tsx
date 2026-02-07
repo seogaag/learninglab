@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { classroomApi, Course } from '../services/api'
+import { classroomApi, calendarApi, Course, Coursework, CalendarEvent } from '../services/api'
 import CalendarView from './CalendarView'
 import './Classroom.css'
 
 const CalendarSidebar: React.FC = () => {
   const { token } = useAuth()
-  const [events, setEvents] = useState<any[]>([])
+  const [events, setEvents] = useState<CalendarEvent[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -20,7 +20,6 @@ const CalendarSidebar: React.FC = () => {
     
     setLoading(true)
     try {
-      const { calendarApi } = await import('../services/api')
       const data = await calendarApi.getEvents(token, 3)
       setEvents(data)
     } catch (err) {
@@ -60,240 +59,371 @@ const CalendarSidebar: React.FC = () => {
   )
 }
 
-interface ClassCardProps {
-  course: Course
-  onClick: () => void
-}
-
-const ClassCard: React.FC<ClassCardProps> = ({ course, onClick }) => {
-  const getStatusTag = () => {
-    if (course.courseState === 'ACTIVE') {
-      return <span className="class-tag ongoing">Ongoing</span>
-    } else if (course.courseState === 'ARCHIVED') {
-      return <span className="class-tag finished">Finished</span>
-    } else {
-      return <span className="class-tag preparing">Preparing</span>
-    }
-  }
-
-  const getOrganizationTag = () => {
-    // 조직 태그는 course 정보에서 추출하거나 기본값 사용
-    return <span className="class-tag org">GFSU</span>
-  }
-
-  return (
-    <div className="class-card" onClick={onClick}>
-      <div className="class-card-image">
-        <img 
-          src={course.teacherFolder?.alternateLink ? `${course.teacherFolder.alternateLink}/thumbnail` : 'https://via.placeholder.com/300x200?text=Class'} 
-          alt={course.name}
-          onError={(e) => {
-            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x200?text=Class'
-          }}
-        />
-        <div className="class-card-tags">
-          {getStatusTag()}
-          {getOrganizationTag()}
-        </div>
-      </div>
-      <div className="class-card-content">
-        <h3 className="class-card-title">{course.name}</h3>
-        {course.section && (
-          <p className="class-card-subtitle">({course.section})</p>
-        )}
-        <button className="class-card-button" onClick={(e) => { e.stopPropagation(); onClick(); }}>
-          Start Learning
-        </button>
-      </div>
-    </div>
-  )
-}
-
 const Classroom: React.FC = () => {
-  const { user, token } = useAuth()
-  const [courses, setCourses] = useState<Course[]>([])
+  const { user, token, login } = useAuth()
+  const [allCourses, setAllCourses] = useState<Course[]>([])
+  const [myCourses, setMyCourses] = useState<Course[]>([])
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
+  const [coursework, setCoursework] = useState<Coursework[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [activeView, setActiveView] = useState<'all' | 'my-courses' | 'calendar'>('all')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'ongoing' | 'preparing' | 'finished'>('all')
+  const [activeTab, setActiveTab] = useState<'all' | 'my' | 'calendar'>('all')
 
   useEffect(() => {
-    if (token && user) {
-      loadCourses()
-    }
-  }, [token, user])
+    // 워크스페이스 클래스는 항상 로드
+    loadWorkspaceCourses()
+  }, [])
 
-  const loadCourses = async () => {
-    if (!token) return
-    
+  useEffect(() => {
+    // 내 클래스는 로그인한 경우에만 로드
+    if (token && user && activeTab === 'my') {
+      console.log('[Classroom] Loading my courses...', { token: token?.substring(0, 20), user: user?.email })
+      loadMyCourses()
+    }
+  }, [token, user, activeTab])
+
+  const loadWorkspaceCourses = async () => {
     setLoading(true)
-    setError(null)
     try {
-      const data = await classroomApi.getCourses(token)
-      setCourses(data)
+      const data = await classroomApi.getWorkspaceCourses()
+      setAllCourses(data || [])
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to load courses')
-      console.error('Error loading courses:', err)
+      console.error('Error loading workspace courses:', err)
+      setAllCourses([])
     } finally {
       setLoading(false)
     }
   }
 
-  const myCourses = useMemo(() => {
-    return courses.filter(course => course.courseState === 'ACTIVE')
-  }, [courses])
-
-  const filteredCourses = useMemo(() => {
-    let filtered = activeView === 'my-courses' ? myCourses : courses
+  const loadMyCourses = async () => {
+    if (!token) {
+      console.log('[My Courses] No token, skipping load')
+      return
+    }
     
-    if (statusFilter === 'all') return filtered
-    
-    return filtered.filter(course => {
-      if (statusFilter === 'ongoing') return course.courseState === 'ACTIVE'
-      if (statusFilter === 'preparing') return course.courseState === 'PROVISIONED' || course.courseState === 'DECLINED'
-      if (statusFilter === 'finished') return course.courseState === 'ARCHIVED'
-      return true
-    })
-  }, [courses, myCourses, activeView, statusFilter])
-
-  const handleClassClick = (course: Course) => {
-    if (course.alternateLink) {
-      window.open(course.alternateLink, '_blank')
+    console.log('[My Courses] Starting to load courses...')
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await classroomApi.getCourses(token)
+      console.log('[My Courses] API response:', data)
+      console.log('[My Courses] Number of courses:', data?.length || 0)
+      console.log('[My Courses] Course data type:', Array.isArray(data) ? 'array' : typeof data)
+      
+      if (data && Array.isArray(data)) {
+        console.log('[My Courses] Setting courses:', data.map(c => ({ id: c.id, name: c.name })))
+        setMyCourses(data)
+      } else {
+        console.warn('[My Courses] Invalid data format:', data)
+        setMyCourses([])
+      }
+      
+      // 데이터가 없으면 에러가 아니라 정상적인 상태
+      if (!data || data.length === 0) {
+        setError(null)
+        console.log('[My Courses] No courses found (this is normal if user has no enrolled courses)')
+      }
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.detail || err.message || 'Failed to load courses'
+      console.error('[My Courses] Error loading courses:', err)
+      console.error('[My Courses] Error response:', err.response)
+      console.error('[My Courses] Error message:', errorMsg)
+      
+      // refresh token 관련 에러 체크
+      if (errorMsg.includes('refresh token') || errorMsg.includes('re-authenticate')) {
+        setError('refresh_token_needed')
+      } else {
+        setError(errorMsg)
+        setMyCourses([])
+      }
+    } finally {
+      setLoading(false)
+      console.log('[My Courses] Load completed, loading:', false)
     }
   }
 
+  const loadCoursework = async (courseId: string) => {
+    if (!token) return
+    
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await classroomApi.getCoursework(courseId, token)
+      setCoursework(data)
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to load coursework')
+      console.error('Error loading coursework:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCourseClick = (course: Course) => {
+    setSelectedCourse(course)
+    if (course.id && token) {
+      loadCoursework(course.id)
+    }
+  }
+
+  const currentCourses = activeTab === 'all' ? allCourses : myCourses
+
   return (
-    <div className="classroom-page">
-      {/* How to Join a Class Banner */}
-      <div className="join-class-banner">
-        <div className="banner-content">
-          <h2 className="banner-title">How to Join a Class?</h2>
-          <p className="banner-subtitle">*Before You Start - Please Check below</p>
-          <span className="banner-arrow">↓</span>
-        </div>
-      </div>
-
-      <div className="classroom-container">
-        {/* Main Tabs */}
-        <div className="main-tabs">
-          <button 
-            className={`main-tab ${activeView === 'all' ? 'active' : ''}`}
-            onClick={() => setActiveView('all')}
-          >
-            전체 클래스
-          </button>
-          <button 
-            className={`main-tab ${activeView === 'my-courses' ? 'active' : ''}`}
-            onClick={() => setActiveView('my-courses')}
-          >
-            내가 배우고 있는 클래스
-          </button>
-          <button 
-            className={`main-tab ${activeView === 'calendar' ? 'active' : ''}`}
-            onClick={() => setActiveView('calendar')}
-          >
-            Calendar
-          </button>
-        </div>
-
-        {activeView === 'calendar' ? (
-          <CalendarView />
-        ) : (
-          <>
-            {/* Status Filter Tabs */}
-            {activeView === 'all' && (
-              <div className="status-tabs">
-                <button 
-                  className={`status-tab ${statusFilter === 'all' ? 'active' : ''}`}
-                  onClick={() => setStatusFilter('all')}
-                >
-                  전체
-                </button>
-                <button 
-                  className={`status-tab ${statusFilter === 'ongoing' ? 'active' : ''}`}
-                  onClick={() => setStatusFilter('ongoing')}
-                >
-                  진행중
-                </button>
-                <button 
-                  className={`status-tab ${statusFilter === 'preparing' ? 'active' : ''}`}
-                  onClick={() => setStatusFilter('preparing')}
-                >
-                  오픈 예정
-                </button>
-                <button 
-                  className={`status-tab ${statusFilter === 'finished' ? 'active' : ''}`}
-                  onClick={() => setStatusFilter('finished')}
-                >
-                  종료된
-                </button>
-              </div>
-            )}
-
-            {/* Thematic Classes Section */}
-            <div className="thematic-classes-section">
-              <div className="section-header">
-                <h2 className="section-title">Thematic Classes</h2>
-                <p className="section-description">
-                  Let's take case studies based on experiences from GN partnership countries.
+    <div className="classroom">
+      <div className="classroom-grid">
+        <div className="main-content-area">
+          <h2 className="section-title">Learning</h2>
+          <div className="tabs">
+            <button 
+              className={`tab ${activeTab === 'all' ? 'active' : ''}`}
+              onClick={() => setActiveTab('all')}
+            >
+              All
+            </button>
+            <button 
+              className={`tab ${activeTab === 'my' ? 'active' : ''}`}
+              onClick={() => setActiveTab('my')}
+            >
+              My
+            </button>
+            <button 
+              className={`tab ${activeTab === 'calendar' ? 'active' : ''}`}
+              onClick={() => setActiveTab('calendar')}
+            >
+              Calendar
+            </button>
+          </div>
+          
+          {activeTab === 'calendar' ? (
+            <CalendarView />
+          ) : activeTab === 'my' && (!token || !user) ? (
+            <div className="login-prompt">
+              <div className="login-prompt-content">
+                <h3 className="login-prompt-title">로그인이 필요합니다</h3>
+                <p className="login-prompt-text">
+                  내가 수강 중인 클래스를 보려면 Google 계정으로 로그인해주세요.
                 </p>
+                <button 
+                  className="login-prompt-button"
+                  onClick={login}
+                >
+                  Sign in with Google
+                </button>
               </div>
-
+            </div>
+          ) : activeTab === 'my' ? (
+            <div className="my-courses-container">
               {loading ? (
-                <div className="loading-container">
-                  <div className="loading-text">Loading classes...</div>
+                <div className="loading-text">Loading courses...</div>
+              ) : error === 'refresh_token_needed' ? (
+                <div className="error-message">
+                  <p>Google 계정 재인증이 필요합니다.</p>
+                  <p style={{ fontSize: '0.9rem', marginTop: '0.5rem', color: '#685A55' }}>
+                    Google Classroom 데이터를 불러오려면 다시 로그인해주세요.
+                  </p>
+                  <button 
+                    className="login-prompt-button"
+                    onClick={login}
+                  >
+                    다시 로그인하기
+                  </button>
                 </div>
               ) : error ? (
-                <div className="error-container">
-                  <div className="error-text">{error}</div>
+                <div className="error-message">
+                  <p>{error}</p>
+                  <a 
+                    href="https://classroom.google.com/u/0/h"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="classroom-link-button"
+                    style={{ marginTop: '1rem', display: 'inline-block' }}
+                  >
+                    Google Classroom에서 직접 확인하기
+                  </a>
                 </div>
-              ) : filteredCourses.length === 0 ? (
-                <div className="empty-container">
-                  <p>No classes found. Please enroll in Google Classroom courses.</p>
+              ) : myCourses.length === 0 ? (
+                <div className="no-courses-container">
+                  <div className="no-courses-message">
+                    <h3>수강 중인 클래스가 없습니다</h3>
+                    <p>Google Classroom에서 클래스를 등록하거나, 아래 버튼을 클릭하여 Google Classroom을 열어주세요.</p>
+                    <p style={{ fontSize: '0.9rem', color: '#685A55', marginTop: '0.5rem' }}>
+                      참고: Google Classroom은 보안상의 이유로 다른 사이트에 임베딩할 수 없습니다. 
+                      아래 버튼을 클릭하여 새 창에서 Google Classroom을 열어주세요.
+                    </p>
+                    <a 
+                      href="https://classroom.google.com/u/0/h"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="classroom-link-button"
+                    >
+                      Google Classroom 열기
+                    </a>
+                  </div>
                 </div>
               ) : (
-                <div className="class-cards-grid">
-                  {filteredCourses.map((course) => (
-                    <ClassCard
-                      key={course.id}
-                      course={course}
-                      onClick={() => handleClassClick(course)}
-                    />
+                <div className="course-cards">
+                  {myCourses.map((course) => (
+                    <div 
+                      key={course.id} 
+                      className="course-card"
+                      onClick={() => handleCourseClick(course)}
+                    >
+                      <div className="course-header">
+                        <h3 className="course-title">{course.name}</h3>
+                      </div>
+                      <div className="course-content">
+                        <div className="course-info">
+                          {course.description && (
+                            <p className="course-description">{course.description}</p>
+                          )}
+                          {course.section && (
+                            <p className="course-section">Section: {course.section}</p>
+                          )}
+                          {course.alternateLink && (
+                            <a 
+                              href={course.alternateLink} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="course-btn"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              VIEW COURSE
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}
             </div>
-
-            {/* Global Learning by Region Section */}
-            <div className="region-classes-section">
-              <div className="section-header">
-                <h2 className="section-title">Global Learning by Region</h2>
-                <p className="section-description">
-                  Region-specific fundraising strategy courses will also be offered.
-                </p>
-              </div>
-              <div className="region-cards-grid">
-                {/* Region cards can be added here if needed */}
-                <div className="region-card">
-                  <div className="region-card-image">
-                    <span className="region-placeholder">Region Course</span>
+          ) : (
+            <>
+              {selectedCourse ? (
+                <div className="course-detail">
+                  <button 
+                    className="back-button"
+                    onClick={() => setSelectedCourse(null)}
+                  >
+                    ← Back to Courses
+                  </button>
+                  <div className="course-header">
+                    <h3 className="course-title">{selectedCourse.name}</h3>
+                    {selectedCourse.section && (
+                      <p className="course-section">Section: {selectedCourse.section}</p>
+                    )}
+                    {selectedCourse.description && (
+                      <p className="course-description">{selectedCourse.description}</p>
+                    )}
+                    {selectedCourse.alternateLink && (
+                      <a 
+                        href={selectedCourse.alternateLink} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="course-btn"
+                      >
+                        Open in Google Classroom
+                      </a>
+                    )}
                   </div>
-                  <span className="class-tag preparing">Preparing</span>
-                  <h3 className="region-card-title">EAST ASIA</h3>
-                  <button className="class-card-button">Start Learning</button>
-                </div>
-              </div>
-            </div>
 
-            {/* Skill up Banner */}
-            <div className="skill-up-banner">
-              <div className="banner-content">
-                <p className="banner-text">Skill up with GFSU's special courses, and share your feedback</p>
-                <button className="banner-button">Get in Touch</button>
-              </div>
-            </div>
-          </>
-        )}
+                  {loading && coursework.length === 0 ? (
+                    <div className="loading-text">Loading assignments...</div>
+                  ) : (
+                    <div className="course-modules">
+                      <h4 className="modules-title">Assignments</h4>
+                      {coursework.length === 0 ? (
+                        <p className="no-assignments">No assignments found</p>
+                      ) : (
+                        <ul className="modules-list">
+                          {coursework.map((work) => (
+                            <li key={work.id} className="module-item">
+                              <div className="module-content">
+                                <span className="module-name">{work.title}</span>
+                                {work.dueDate && (
+                                  <span className="module-due">
+                                    Due: {work.dueDate.year}-{work.dueDate.month}-{work.dueDate.day}
+                                  </span>
+                                )}
+                              </div>
+                              {work.alternateLink && (
+                                <a 
+                                  href={work.alternateLink} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="module-link"
+                                >
+                                  →
+                                </a>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="course-cards">
+                  {loading ? (
+                    <div className="loading-text">Loading courses...</div>
+                  ) : currentCourses.length === 0 ? (
+                    <div className="no-courses">
+                      <p>No courses available.</p>
+                    </div>
+                  ) : (
+                    currentCourses.map((course) => (
+                      <div 
+                        key={course.id} 
+                        className="course-card"
+                        onClick={() => handleCourseClick(course)}
+                      >
+                        <div className="course-header">
+                          <h3 className="course-title">{course.name}</h3>
+                        </div>
+                        <div className="course-content">
+                          <div className="course-info">
+                            {course.description && (
+                              <p className="course-description">{course.description}</p>
+                            )}
+                            {course.section && (
+                              <p className="course-section">Section: {course.section}</p>
+                            )}
+                            {course.alternateLink && (
+                              <a 
+                                href={course.alternateLink} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="course-btn"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                VIEW COURSE
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        <div className="sidebar-right">
+          <h2 className="sidebar-title">Today's Focus</h2>
+          <div className="focus-section">
+            <h3 className="focus-subtitle">Ik bits Repind</h3>
+            <p className="focus-text">Your crpentloettberntiert thaaike So incase</p>
+          </div>
+          <CalendarSidebar />
+          <div className="social-icons">
+            <span className="social-icon">📅</span>
+            <span className="social-icon">💬</span>
+            <span className="social-icon">👤</span>
+            <span className="social-icon">⚙️</span>
+          </div>
+        </div>
       </div>
     </div>
   )

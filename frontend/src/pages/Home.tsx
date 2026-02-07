@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { calendarApi, CalendarEvent } from '../services/api'
+import { calendarApi, CalendarEvent, publicApi, Banner } from '../services/api'
 import './Home.css'
 
 const Home: React.FC = () => {
   const { token } = useAuth()
   const [events, setEvents] = useState<CalendarEvent[]>([])
+  const [banners, setBanners] = useState<Banner[]>([])
   const [loading, setLoading] = useState(false)
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0)
 
   useEffect(() => {
     if (token) {
       loadEvents()
     }
+    loadBanners()
   }, [token])
 
   const loadEvents = async () => {
@@ -28,6 +31,19 @@ const Home: React.FC = () => {
     }
   }
 
+  const loadBanners = async () => {
+    try {
+      const data = await publicApi.getBanners()
+      console.log('Loaded banners:', data)
+      setBanners(data)
+      if (data.length > 0) {
+        console.log('First banner image URL:', data[0].image_url)
+      }
+    } catch (err) {
+      console.error('Error loading banners:', err)
+    }
+  }
+
   const formatDate = (dateString?: string) => {
     if (!dateString) return ''
     const date = new Date(dateString)
@@ -39,20 +55,55 @@ const Home: React.FC = () => {
     })
   }
 
+  const currentBanner = banners.length > 0 ? banners[currentBannerIndex] : null
+  
+  console.log('Current banner:', currentBanner)
+  console.log('Banners array:', banners)
+
   return (
     <div className="home">
-      <div className="hero-section">
-        <div className="hero-overlay">
-          <h1 className="hero-title">Unlock Global Potential. Share. Learn, Grow.</h1>
-          <button className="hero-cta">Featured Class el Noxe!</button>
-          <div className="carousel-indicators">
-            <span className="indicator active"></span>
-            <span className="indicator"></span>
-            <span className="indicator"></span>
-            <span className="indicator"></span>
+      {currentBanner ? (
+        <div 
+          className="hero-section hero-banner"
+          style={{ backgroundImage: `url(${currentBanner.image_url})` }}
+          onClick={() => currentBanner.link_url && window.open(currentBanner.link_url, '_blank')}
+        >
+          <div className="hero-overlay">
+            <h1 className="hero-title">{currentBanner.title}</h1>
+            {currentBanner.subtitle && <p className="hero-subtitle">{currentBanner.subtitle}</p>}
+            {currentBanner.link_url && (
+              <button className="hero-cta">자세히 보기</button>
+            )}
+            {banners.length > 1 && (
+              <div className="carousel-indicators">
+                {banners.map((_, index) => (
+                  <span
+                    key={index}
+                    className={`indicator ${index === currentBannerIndex ? 'active' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setCurrentBannerIndex(index)
+                    }}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="hero-section">
+          <div className="hero-overlay">
+            <h1 className="hero-title">Unlock Global Potential. Share. Learn, Grow.</h1>
+            <button className="hero-cta">Featured Class el Noxe!</button>
+            <div className="carousel-indicators">
+              <span className="indicator active"></span>
+              <span className="indicator"></span>
+              <span className="indicator"></span>
+              <span className="indicator"></span>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="content-grid">
         <div className="sidebar-left">
