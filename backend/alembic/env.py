@@ -15,6 +15,7 @@ from app.models.oauth_state import OAuthState
 from app.models.admin import Admin
 from app.models.banner import Banner
 from app.models.workspace_course import WorkspaceCourse
+from app.models.page_section import PageSection
 
 # this is the Alembic Config object
 config = context.config

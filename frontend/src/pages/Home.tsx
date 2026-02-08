@@ -1,35 +1,87 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { calendarApi, CalendarEvent, publicApi, Banner } from '../services/api'
+import { publicApi, Banner } from '../services/api'
 import './Home.css'
 
+interface WorkingTogetherItem {
+  id: number
+  image: string
+  caption: string
+}
+
+interface Testimonial {
+  id: number
+  name: string
+  role: string
+  text: string
+  rating: number
+}
+
 const Home: React.FC = () => {
-  const { token } = useAuth()
-  const [events, setEvents] = useState<CalendarEvent[]>([])
+  const navigate = useNavigate()
   const [banners, setBanners] = useState<Banner[]>([])
-  const [loading, setLoading] = useState(false)
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0)
 
-  useEffect(() => {
-    if (token) {
-      loadEvents()
+  // Working Together 데이터 (나중에 DB에서 가져올 수 있음)
+  const workingTogetherItems: WorkingTogetherItem[] = [
+    {
+      id: 1,
+      image: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=400',
+      caption: '2024 Annual Conference IW.GN'
+    },
+    {
+      id: 2,
+      image: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=400',
+      caption: '2025 Collaborate Project w. GNI...'
+    },
+    {
+      id: 3,
+      image: 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=400',
+      caption: '2025 Together we shine project (K...'
+    },
+    {
+      id: 4,
+      image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=400',
+      caption: '2024 Global Campaign "Earth&us..."'
     }
-    loadBanners()
-  }, [token])
+  ]
 
-  const loadEvents = async () => {
-    if (!token) return
-    
-    setLoading(true)
-    try {
-      const data = await calendarApi.getEvents(token, 5)
-      setEvents(data)
-    } catch (err) {
-      console.error('Error loading events:', err)
-    } finally {
-      setLoading(false)
+  // Testimonials 데이터 (나중에 DB에서 가져올 수 있음)
+  const testimonials: Testimonial[] = [
+    {
+      id: 1,
+      name: 'Jay Kim',
+      role: 'GPC Global Fundraising Support Unit',
+      text: 'As a fundraising officer, the Brand Awareness part had always felt quite rogue to me. I requested support from GFSU on this, and the content provided was very helpful. Thank you for creating such a convenient practical lecture.',
+      rating: 5
+    },
+    {
+      id: 2,
+      name: 'Joy Jung',
+      role: 'GPC Global Fundraising Support Unit',
+      text: 'I truly enjoyed the meaningful time we had to communicate and share experiences together, and I felt very grateful and happy throughout.',
+      rating: 5
+    },
+    {
+      id: 3,
+      name: 'Julie Seo',
+      role: 'GPC Global Fundraising Support Unit',
+      text: 'GFLab provided exactly the lectures we needed. we were able to apply them in our context. The guidance was practical and easy to put into action. We will continue working with GFLab to steadily expand our fundraising efforts.',
+      rating: 5
+    },
+    {
+      id: 4,
+      name: 'Stephanie',
+      role: 'GPC Global Fundraising Support Unit',
+      text: 'This platform is helpful for gaining insights from other countries, especially with their lessons learned.',
+      rating: 5
     }
-  }
+  ]
+
+  useEffect(() => {
+    loadBanners()
+  }, [])
 
   const loadBanners = async () => {
     try {
@@ -44,51 +96,40 @@ const Home: React.FC = () => {
     }
   }
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return ''
-    const date = new Date(dateString)
-    return date.toLocaleDateString('ko-KR', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
+
+  const getImageUrl = (url: string): string => {
+    if (!url) return ''
+    // 업로드된 이미지인 경우 전체 URL로 변환
+    if (url.startsWith('/admin/upload/image/')) {
+      return `http://localhost:8000${url}`
+    }
+    return url
   }
 
   const currentBanner = banners.length > 0 ? banners[currentBannerIndex] : null
-  
-  console.log('Current banner:', currentBanner)
-  console.log('Banners array:', banners)
 
   return (
     <div className="home">
       {currentBanner ? (
         <div 
           className="hero-section hero-banner"
-          style={{ backgroundImage: `url(${currentBanner.image_url})` }}
+          style={{ backgroundImage: `url(${getImageUrl(currentBanner.image_url)})` }}
           onClick={() => currentBanner.link_url && window.open(currentBanner.link_url, '_blank')}
         >
-          <div className="hero-overlay">
-            <h1 className="hero-title">{currentBanner.title}</h1>
-            {currentBanner.subtitle && <p className="hero-subtitle">{currentBanner.subtitle}</p>}
-            {currentBanner.link_url && (
-              <button className="hero-cta">자세히 보기</button>
-            )}
-            {banners.length > 1 && (
-              <div className="carousel-indicators">
-                {banners.map((_, index) => (
-                  <span
-                    key={index}
-                    className={`indicator ${index === currentBannerIndex ? 'active' : ''}`}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setCurrentBannerIndex(index)
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+          {banners.length > 1 && (
+            <div className="carousel-indicators">
+              {banners.map((_, index) => (
+                <span
+                  key={index}
+                  className={`indicator ${index === currentBannerIndex ? 'active' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setCurrentBannerIndex(index)
+                  }}
+                />
+              ))}
+            </div>
+          )}
         </div>
       ) : (
         <div className="hero-section">
@@ -105,72 +146,54 @@ const Home: React.FC = () => {
         </div>
       )}
 
-      <div className="content-grid">
-        <div className="sidebar-left">
-          <h2 className="sidebar-title">Main Homepage</h2>
-          <ul className="sidebar-menu">
-            <li className="menu-item">
-              <span>My Courses</span>
-            </li>
-            <li className="menu-item">
-              <span>Ezliert lored</span>
-            </li>
-            <li className="menu-item">
-              <span className="menu-text">AI Marketing</span>
-              <span className="menu-dot yellow"></span>
-            </li>
-            <li className="menu-item">
-              <span className="menu-text">Content Strategy</span>
-              <span className="menu-check green">✓</span>
-            </li>
-            <li className="menu-item">
-              <span className="menu-text">Clobeld oontteges Q2</span>
-              <span className="menu-check green">✓</span>
-            </li>
-            <li className="menu-item">
-              <span>Global Cenayties</span>
-            </li>
-            <li className="menu-item">
-              <span>Data Analytics</span>
-            </li>
-            <li className="menu-item">
-              <span className="menu-text">Filter</span>
-              <span className="menu-dot green"></span>
-            </li>
-          </ul>
-          <div className="copyright">©2266 Global toops husparstmà</div>
+      {/* Working Together Section */}
+      <div className="working-together-section">
+        <h2 className="section-main-title">Working Together</h2>
+        <div className="working-together-grid">
+          {workingTogetherItems.map((item) => (
+            <div key={item.id} className="working-together-item">
+              <img src={item.image} alt={item.caption} className="working-together-image" />
+              <p className="working-together-caption">{item.caption}</p>
+            </div>
+          ))}
         </div>
+      </div>
 
-        <div className="main-content-area">
-          <h2 className="section-title">Learning</h2>
-          <div className="tabs">
-            <button className="tab active">Calendar</button>
-            <button className="tab">Spien 3lt</button>
-          </div>
+      {/* Feedback & Encouragement Section */}
+      <div className="feedback-section">
+        <h2 className="section-main-title">Feedback & Encouragement</h2>
+        <div className="testimonials-grid">
+          {testimonials.map((testimonial) => (
+            <div key={testimonial.id} className="testimonial-card">
+              <div className="testimonial-header">
+                <h3 className="testimonial-name">{testimonial.name}</h3>
+                <p className="testimonial-role">{testimonial.role}</p>
+              </div>
+              <p className="testimonial-text">{testimonial.text}</p>
+              <div className="testimonial-rating">
+                {Array.from({ length: testimonial.rating }).map((_, i) => (
+                  <span key={i} className="star">★</span>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
+      </div>
 
-        <div className="sidebar-right">
-          <h2 className="sidebar-title">Today's Focus</h2>
-          <div className="focus-section">
-            <h3 className="focus-subtitle">Ik bits Repind</h3>
-            <p className="focus-text">Your crpem loettberntiert thaaike so incase</p>
-          </div>
-          <div className="calendar-events">
-            <h3 className="focus-subtitle">Calendar Events</h3>
-            {loading ? (
-              <div className="loading-text">Loading...</div>
-            ) : events.length === 0 ? (
-              <div className="no-events">No upcoming events</div>
-            ) : (
-              events.map((event) => (
-                <div key={event.id} className="event-item">
-                  <div className="event-date">{formatDate(event.start?.dateTime || event.start?.date)}</div>
-                  <div className="event-title-small">{event.summary}</div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+      {/* Action Buttons Section */}
+      <div className="action-buttons-section">
+        <button 
+          className="action-button"
+          onClick={() => navigate('/community')}
+        >
+          Community
+        </button>
+        <button 
+          className="action-button"
+          onClick={() => navigate('/learning')}
+        >
+          Class Room
+        </button>
       </div>
     </div>
   )

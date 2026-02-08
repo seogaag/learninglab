@@ -239,3 +239,39 @@
 .form-actions button[type="button"]:hover {
   background: #d4d8c5;
 }
+
+.image-upload-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.image-upload-section input[type="file"] {
+  padding: 0.5rem;
+  border: 2px solid #E9EADE;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.upload-status {
+  color: #89A230;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.image-preview {
+  margin-top: 1rem;
+  border: 2px solid #E9EADE;
+  border-radius: 6px;
+  padding: 0.5rem;
+  background: white;
+  max-width: 300px;
+}
+
+.image-preview img {
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+  object-fit: cover;
+}

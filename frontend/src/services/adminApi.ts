@@ -114,6 +114,31 @@ export const adminCourseApi = {
   },
 }
 
+export interface UploadImageResponse {
+  url: string
+  filename: string
+}
+
+export const adminUploadApi = {
+  uploadImage: async (file: File): Promise<UploadImageResponse> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    const token = localStorage.getItem('admin_token')
+    const response = await axios.post(`${API_URL}/admin/upload/image`, formData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    return response.data
+  },
+  
+  getImageUrl: (filename: string): string => {
+    return `${API_URL}/admin/upload/image/${filename}`
+  },
+}
+
 // 공개 API (배너 및 워크스페이스 클래스)
 export const publicApi = {
   getBanners: async (): Promise<Banner[]> => {
@@ -123,6 +148,49 @@ export const publicApi = {
   
   getWorkspaceCourses: async (): Promise<WorkspaceCourse[]> => {
     const response = await axios.get(`${API_URL}/public/workspace-courses`)
+    return response.data
+  },
+}
+
+export interface PageSection {
+  id: number
+  section_type: string
+  title?: string
+  order: number
+  is_active: boolean
+  data?: any
+  created_at: string
+  updated_at?: string
+}
+
+export const adminPageApi = {
+  getAll: async (): Promise<PageSection[]> => {
+    const response = await adminApi.get('/admin/page-sections')
+    return response.data
+  },
+  
+  create: async (section: Omit<PageSection, 'id' | 'created_at' | 'updated_at'>): Promise<PageSection> => {
+    const response = await adminApi.post('/admin/page-sections', section)
+    return response.data
+  },
+  
+  update: async (id: number, section: Partial<PageSection>): Promise<PageSection> => {
+    const response = await adminApi.put(`/admin/page-sections/${id}`, section)
+    return response.data
+  },
+  
+  delete: async (id: number): Promise<void> => {
+    await adminApi.delete(`/admin/page-sections/${id}`)
+  },
+  
+  reorder: async (sectionOrders: { id: number; order: number }[]): Promise<void> => {
+    await adminApi.post('/admin/page-sections/reorder', sectionOrders)
+  },
+}
+
+export const publicPageApi = {
+  getSections: async (): Promise<PageSection[]> => {
+    const response = await axios.get(`${API_URL}/public/page-sections`)
     return response.data
   },
 }

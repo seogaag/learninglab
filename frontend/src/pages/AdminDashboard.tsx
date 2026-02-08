@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { adminBannerApi, adminCourseApi, Banner, WorkspaceCourse } from '../services/adminApi'
+import { adminBannerApi, adminCourseApi, adminUploadApi, Banner, WorkspaceCourse } from '../services/adminApi'
 import './AdminDashboard.css'
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate()
@@ -239,6 +241,51 @@ const BannerForm: React.FC<{
     order: banner?.order || 0,
     is_active: banner?.is_active ?? true,
   })
+  const [uploading, setUploading] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (formData.image_url) {
+      if (formData.image_url.startsWith('/admin/upload/image/')) {
+        setPreviewUrl(`${API_URL}${formData.image_url}`)
+      } else {
+        setPreviewUrl(formData.image_url)
+      }
+    } else {
+      setPreviewUrl(null)
+    }
+  }, [formData.image_url])
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // 파일 크기 확인 (10MB)
+    const maxSize = 10 * 1024 * 1024
+    if (file.size > maxSize) {
+      alert('파일 크기는 10MB를 초과할 수 없습니다.')
+      return
+    }
+
+    // 파일 타입 확인
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg']
+    if (!allowedTypes.includes(file.type)) {
+      alert('PNG, JPEG, JPG 형식의 이미지만 업로드 가능합니다.')
+      return
+    }
+
+    setUploading(true)
+    try {
+      const result = await adminUploadApi.uploadImage(file)
+      setFormData({ ...formData, image_url: result.url })
+    } catch (err: any) {
+      console.error('Error uploading image:', err)
+      const errorMessage = err.response?.data?.detail || '이미지 업로드에 실패했습니다.'
+      alert(errorMessage)
+    } finally {
+      setUploading(false)
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -264,12 +311,23 @@ const BannerForm: React.FC<{
         />
       </div>
       <div className="form-group">
-        <label>이미지 URL *</label>
-        <input
-          value={formData.image_url}
-          onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-          required
-        />
+        <label>이미지 *</label>
+        <div className="image-upload-section">
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/jpg"
+            onChange={handleFileUpload}
+            disabled={uploading}
+            style={{ marginBottom: '0.5rem' }}
+            required={!formData.image_url}
+          />
+          {uploading && <p className="upload-status">업로드 중...</p>}
+          {previewUrl && (
+            <div className="image-preview">
+              <img src={previewUrl} alt="Preview" />
+            </div>
+          )}
+        </div>
       </div>
       <div className="form-group">
         <label>링크 URL</label>
@@ -321,6 +379,51 @@ const CourseForm: React.FC<{
     order: course?.order || 0,
     is_active: course?.is_active ?? true,
   })
+  const [uploading, setUploading] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (formData.image_url) {
+      if (formData.image_url.startsWith('/admin/upload/image/')) {
+        setPreviewUrl(`${API_URL}${formData.image_url}`)
+      } else {
+        setPreviewUrl(formData.image_url)
+      }
+    } else {
+      setPreviewUrl(null)
+    }
+  }, [formData.image_url])
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // 파일 크기 확인 (10MB)
+    const maxSize = 10 * 1024 * 1024
+    if (file.size > maxSize) {
+      alert('파일 크기는 10MB를 초과할 수 없습니다.')
+      return
+    }
+
+    // 파일 타입 확인
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg']
+    if (!allowedTypes.includes(file.type)) {
+      alert('PNG, JPEG, JPG 형식의 이미지만 업로드 가능합니다.')
+      return
+    }
+
+    setUploading(true)
+    try {
+      const result = await adminUploadApi.uploadImage(file)
+      setFormData({ ...formData, image_url: result.url })
+    } catch (err: any) {
+      console.error('Error uploading image:', err)
+      const errorMessage = err.response?.data?.detail || '이미지 업로드에 실패했습니다.'
+      alert(errorMessage)
+    } finally {
+      setUploading(false)
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -354,11 +457,22 @@ const CourseForm: React.FC<{
         />
       </div>
       <div className="form-group">
-        <label>이미지 URL</label>
-        <input
-          value={formData.image_url || ''}
-          onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-        />
+        <label>이미지</label>
+        <div className="image-upload-section">
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/jpg"
+            onChange={handleFileUpload}
+            disabled={uploading}
+            style={{ marginBottom: '0.5rem' }}
+          />
+          {uploading && <p className="upload-status">업로드 중...</p>}
+          {previewUrl && (
+            <div className="image-preview">
+              <img src={previewUrl} alt="Preview" />
+            </div>
+          )}
+        </div>
       </div>
       <div className="form-group">
         <label>링크 URL</label>
