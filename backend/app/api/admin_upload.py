@@ -17,6 +17,8 @@ UPLOAD_DIR = Path("/app/uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
 
 ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
+MAX_FILE_SIZE_MB = 10
+MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024  # 10MB in bytes
 
 def is_allowed_file(filename: str) -> bool:
     ext = Path(filename).suffix.lower()
@@ -47,8 +49,8 @@ async def upload_image(
     
     if file_size > MAX_FILE_SIZE:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"File size exceeds maximum allowed size of {MAX_FILE_SIZE / (1024 * 1024)}MB"
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"File size exceeds the limit of {MAX_FILE_SIZE_MB}MB"
         )
     
     # 파일 포인터를 처음으로 되돌림
@@ -74,10 +76,13 @@ async def upload_image(
             detail=f"Failed to save file: {str(e)}"
         )
 
-@router.get("/image/{filename}")
+@router.get("/image/{filename:path}")
 async def get_image(filename: str):
     """업로드된 이미지 조회"""
-    file_path = UPLOAD_DIR / filename
+    from urllib.parse import unquote
+    # URL 디코딩 (한글 파일명 등 처리)
+    decoded_filename = unquote(filename)
+    file_path = UPLOAD_DIR / decoded_filename
     
     if not file_path.exists():
         raise HTTPException(

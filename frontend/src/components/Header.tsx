@@ -19,7 +19,7 @@ const Header: React.FC = () => {
         <div className="header-left">
           <Link to="/" className="logo">
             <div className="logo-icon">in</div>
-            <span className="logo-text">Insight Hub</span>
+            <span className="logo-text">GF Lab</span>
           </Link>
         </div>
         
@@ -71,10 +71,13 @@ const Header: React.FC = () => {
                     </div>
                   </div>
                   <div className="dropdown-divider"></div>
-                  <a href="#" className="dropdown-item" onClick={(e) => { e.preventDefault(); setShowDropdown(false); }}>
-                    My Profile
-                  </a>
-                  <a href="#" className="dropdown-item" onClick={(e) => { e.preventDefault(); setShowDropdown(false); }}>
+                  <a 
+                    href="https://myaccount.google.com/" 
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="dropdown-item" 
+                    onClick={(e) => { setShowDropdown(false); }}
+                  >
                     Settings
                   </a>
                   <a href="#" className="dropdown-item" onClick={(e) => { e.preventDefault(); handleLogout(); }}>

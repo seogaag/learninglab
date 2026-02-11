@@ -12,9 +12,15 @@ const apiClient = axios.create({
 
 // 요청 인터셉터: 토큰 추가
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('auth_token')
-  if (token && config.params) {
-    config.params.token = token
+  // params에 token이 이미 있으면 덮어쓰지 않음 (관리자 토큰 등)
+  if (!config.params?.token) {
+    const token = localStorage.getItem('auth_token')
+    if (token) {
+      if (!config.params) {
+        config.params = {}
+      }
+      config.params.token = token
+    }
   }
   return config
 })
@@ -39,6 +45,8 @@ export interface Course {
   courseMaterialSets?: any[]
   guardiansEnabled?: boolean
   calendarId?: string
+  image_url?: string
+  organization?: string
 }
 
 export interface Coursework {
@@ -99,7 +107,7 @@ export const classroomApi = {
   },
 
   getWorkspaceCourses: async (): Promise<Course[]> => {
-    const response = await apiClient.get('/classroom/workspace-courses')
+    const response = await apiClient.get('/public/workspace-courses')
     return response.data
   },
 
@@ -140,6 +148,158 @@ export interface Banner {
 export const publicApi = {
   getBanners: async (): Promise<Banner[]> => {
     const response = await apiClient.get('/public/banners')
+    return response.data
+  },
+}
+
+// Community API
+export interface Post {
+  id: number
+  post_type: 'notice' | 'forum' | 'request'
+  title: string
+  content: string
+  author_email: string
+  author_name?: string
+  is_pinned: boolean
+  view_count: number
+  image_url?: string
+  like_count: number
+  is_liked: boolean
+  created_at: string
+  updated_at?: string
+  tags: Array<{ id: number; name: string }>
+  mentions: Array<{ mentioned_email: string; mentioned_name?: string }>
+  comment_count: number
+}
+
+export interface Comment {
+  id: number
+  post_id: number
+  content: string
+  author_email: string
+  author_name?: string
+  parent_id?: number
+  created_at: string
+  updated_at?: string
+  mentions: Array<{ mentioned_email: string; mentioned_name?: string }>
+}
+
+export interface PostListResponse {
+  posts: Post[]
+  total: number
+  page: number
+  page_size: number
+}
+
+export interface Tag {
+  id: number
+  name: string
+  post_count: number
+}
+
+const getAuthToken = (): string => {
+  return localStorage.getItem('auth_token') || ''
+}
+
+export const communityApi = {
+  getPosts: async (params?: {
+    post_type?: 'notice' | 'forum' | 'request'
+    tag?: string
+    search?: string
+    page?: number
+    page_size?: number
+  }, adminToken?: string): Promise<PostListResponse> => {
+    const token = adminToken || getAuthToken()
+    const response = await apiClient.get('/community/posts', {
+      params: { ...params, token: token || undefined }
+    })
+    return response.data
+  },
+  
+  getPost: async (postId: number): Promise<Post> => {
+    const token = getAuthToken()
+    const response = await apiClient.get(`/community/posts/${postId}`, {
+      params: { token }
+    })
+    return response.data
+  },
+  
+  createPost: async (post: {
+    post_type: 'notice' | 'forum' | 'request'
+    title: string
+    content: string
+    tags?: string[]
+    mentions?: string[]
+  }, adminToken?: string): Promise<Post> => {
+    // Notice인 경우 관리자 토큰 사용, 그 외에는 일반 사용자 토큰 사용
+    const token = adminToken || getAuthToken()
+    const response = await apiClient.post('/community/posts', post, {
+      params: { token }
+    })
+    return response.data
+  },
+  
+  updatePost: async (postId: number, post: {
+    title?: string
+    content?: string
+    tags?: string[]
+    mentions?: string[]
+    is_pinned?: boolean
+  }, adminToken?: string): Promise<Post> => {
+    const token = adminToken || getAuthToken()
+    const response = await apiClient.put(`/community/posts/${postId}`, post, {
+      params: { token }
+    })
+    return response.data
+  },
+  
+  deletePost: async (postId: number, adminToken?: string): Promise<void> => {
+    const token = adminToken || getAuthToken()
+    await apiClient.delete(`/community/posts/${postId}`, {
+      params: { token }
+    })
+  },
+  
+  getComments: async (postId: number): Promise<Comment[]> => {
+    const response = await apiClient.get(`/community/posts/${postId}/comments`)
+    return response.data
+  },
+  
+  createComment: async (postId: number, comment: {
+    content: string
+    parent_id?: number
+    mentions?: string[]
+  }): Promise<Comment> => {
+    const token = getAuthToken()
+    const response = await apiClient.post(`/community/posts/${postId}/comments`, comment, {
+      params: { token }
+    })
+    return response.data
+  },
+  
+  getTags: async (): Promise<Tag[]> => {
+    const response = await apiClient.get('/community/tags')
+    return response.data
+  },
+  
+  toggleLike: async (postId: number): Promise<{ liked: boolean; like_count: number }> => {
+    const token = getAuthToken()
+    const response = await apiClient.post(`/community/posts/${postId}/like`, {}, {
+      params: { token }
+    })
+    return response.data
+  },
+}
+
+export const driveApi = {
+  getFolderContents: async (folderId: string, token: string): Promise<{
+    folder: any
+    contents: any[]
+    parent_id: string | null
+  }> => {
+    const response = await apiClient.get(`/drive/folders/${folderId}/contents`, {
+      params: { token }
+    })
     return response.data
   },
 }

@@ -91,6 +91,104 @@
   background: #718B29;
 }
 
+.drive-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.drive-back-btn {
+  padding: 0.5rem 1rem;
+  background: #E9EADE;
+  color: #57463D;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.drive-back-btn:hover {
+  background: #89A230;
+  color: white;
+}
+
+.drive-folder-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #57463D;
+}
+
+.drive-loading,
+.drive-empty {
+  text-align: center;
+  padding: 3rem;
+  color: #685A55;
+  background: white;
+  border-radius: 8px;
+}
+
+.drive-items-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.drive-item {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid #E9EADE;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.drive-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #89A230;
+}
+
+.drive-item.drive-folder {
+  border-color: #89A230;
+}
+
+.drive-item-icon {
+  margin-bottom: 0.75rem;
+}
+
+.drive-item-name {
+  font-weight: 500;
+  color: #57463D;
+  word-break: break-word;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.drive-item-meta {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #685A55;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
 .drive-embed-container {
   width: 100%;
   min-height: 600px;
