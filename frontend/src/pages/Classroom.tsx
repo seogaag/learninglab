@@ -257,15 +257,15 @@ const Classroom: React.FC = () => {
           ) : activeTab === 'my' && (!token || !user) ? (
             <div className="login-prompt">
               <div className="login-prompt-content">
-                <h3 className="login-prompt-title">로그인이 필요합니다</h3>
+                <h3 className="login-prompt-title">Login Required</h3>
                 <p className="login-prompt-text">
-                  내가 수강 중인 클래스를 보려면 Google 계정으로 로그인해주세요.
+                  Please sign in with your Google account to view your enrolled classes.
                 </p>
                 <button 
                   className="login-prompt-button"
                   onClick={login}
                 >
-                  Sign in with Google
+                  Sign In
                 </button>
               </div>
             </div>
@@ -275,15 +275,15 @@ const Classroom: React.FC = () => {
                 <div className="loading-text">Loading courses...</div>
               ) : error === 'refresh_token_needed' ? (
                 <div className="error-message">
-                  <p>Google 계정 재인증이 필요합니다.</p>
+                  <p>Google account re-authentication required.</p>
                   <p style={{ fontSize: '0.9rem', marginTop: '0.5rem', color: '#685A55' }}>
-                    Google Classroom 데이터를 불러오려면 다시 로그인해주세요.
+                    Please sign in again to load Google Classroom data.
                   </p>
                   <button 
                     className="login-prompt-button"
                     onClick={login}
                   >
-                    다시 로그인하기
+                    Sign In Again
                   </button>
                 </div>
               ) : error ? (

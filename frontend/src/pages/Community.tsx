@@ -116,12 +116,12 @@ const Community: React.FC = () => {
       <div className="community">
         <div className="login-prompt">
           <div className="login-prompt-content">
-            <h3 className="login-prompt-title">로그인이 필요합니다</h3>
+            <h3 className="login-prompt-title">Login Required</h3>
             <p className="login-prompt-text">
-              커뮤니티를 이용하려면 Google 계정으로 로그인해주세요.
+              Please sign in with your Google account to access the community.
             </p>
             <button className="login-prompt-button" onClick={login}>
-              Sign in with Google
+              Sign In
             </button>
           </div>
         </div>
@@ -286,7 +286,7 @@ const Community: React.FC = () => {
                     className={`like-btn ${selectedPost.is_liked ? 'liked' : ''}`}
                     onClick={async () => {
                       if (!token) {
-                        alert('로그인이 필요합니다.')
+                        alert('Login required.')
                         return
                       }
                       try {

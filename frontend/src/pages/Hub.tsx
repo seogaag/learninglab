@@ -21,8 +21,12 @@ const Hub: React.FC = () => {
         </div>
 
         <p className="hub-embed-hint">
-          아래가 403으로 보이면 폴더가 비공개입니다. Google Drive에서 폴더 공유를 &quot;링크가 있는 모든 사용자&quot;로 설정하거나, 위 버튼으로 Drive에서 열어보세요.
+          First-time visitor? You may see a 403 error after allowing cache. Please refresh your browser.
         </p>
+
+        <div className="hub-image-container">
+          <img src="/hub.png" alt="Hub" className="hub-image" />
+        </div>
 
         <div className="hub-content">
           <div className="drive-embed-container">

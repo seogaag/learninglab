@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import Layout from './components/Layout'
 import Home from './pages/Home'
@@ -24,6 +24,7 @@ function App() {
                 <Route path="/learning" element={<Classroom />} />
                 <Route path="/community" element={<Community />} />
                 <Route path="/hub" element={<Hub />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Layout>
           } />

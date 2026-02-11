@@ -28,7 +28,7 @@ const AuthCallback: React.FC = () => {
         flexDirection: 'column',
         gap: '1rem'
       }}>
-        <div>로그인 처리 중...</div>
+        <div>Processing login...</div>
       </div>
     )
   }

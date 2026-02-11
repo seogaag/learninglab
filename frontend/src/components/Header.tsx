@@ -19,6 +19,7 @@ const Header: React.FC = () => {
         <div className="header-left">
           <Link to="/" className="logo">
             <img src="/goodneighbors-logo.jpg" alt="Good Neighbors" className="logo-img" />
+            <span className="logo-text">Fundraising Lab</span>
           </Link>
         </div>
         
@@ -86,9 +87,19 @@ const Header: React.FC = () => {
               )}
             </div>
           ) : (
-            <button className="sign-in-btn" onClick={login}>
-              Sign in with Google
-            </button>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              <a 
+                href="https://sites.google.com/globalgn.org/gflab/sign-up?authuser=0"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="sign-up-btn"
+              >
+                Sign Up
+              </a>
+              <button className="sign-in-btn" onClick={login}>
+                Sign In
+              </button>
+            </div>
           )}
         </div>
       </div>

@@ -1,8 +1,10 @@
 .footer {
-  background: #718B29;
+  background: #89A230;
   color: white;
   padding: 3rem 2rem 2rem;
-  margin-top: 4rem;
+  margin-top: -1px;
+  position: relative;
+  z-index: 1;
 }
 
 .footer-container {
@@ -55,6 +57,10 @@
   transition: all 0.3s;
   display: inline-block;
   text-align: center;
+  min-width: 180px;
+  width: 180px;
+  box-sizing: border-box;
+  white-space: nowrap;
 }
 
 .footer-link:hover {
@@ -113,6 +119,11 @@
     flex-direction: column;
     gap: 2rem;
     width: 100%;
+  }
+  
+  .footer-link {
+    width: 100%;
+    min-width: 100%;
   }
   
   .footer-bottom {
