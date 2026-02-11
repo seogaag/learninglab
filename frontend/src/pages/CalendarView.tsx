@@ -41,7 +41,7 @@ const CalendarView: React.FC = () => {
       
       // 403 에러는 권한 문제
       if (err.response?.status === 403 || errorMsg.includes('403') || errorMsg.includes('Forbidden')) {
-        setError('Calendar API 권한이 없습니다. Google 계정에서 캘린더 권한을 확인해주세요.')
+        setError('Calendar API permission is required. Please check your Google account calendar permissions.')
       } else if (errorMsg.includes('refresh token') || errorMsg.includes('re-authenticate')) {
         setError('refresh_token_needed')
       } else {
@@ -86,7 +86,7 @@ const CalendarView: React.FC = () => {
         ) : error ? (
           <div className="error-message">
             <p>{error}</p>
-            {error.includes('권한') && (
+            {error.includes('permission') && (
               <a 
                 href="https://calendar.google.com"
                 target="_blank"
@@ -94,22 +94,22 @@ const CalendarView: React.FC = () => {
                 className="calendar-link-button"
                 style={{ marginTop: '1rem', display: 'inline-block' }}
               >
-                Google Calendar에서 직접 확인하기
+                Open Google Calendar directly
               </a>
             )}
           </div>
         ) : events.length === 0 ? (
           <div className="no-events-container">
             <div className="no-events-message">
-              <h3>다가오는 일정이 없습니다</h3>
-              <p>Google Calendar에 일정이 없거나, 최근 30일 내 일정이 없습니다.</p>
+              <h3>No upcoming events</h3>
+              <p>There are no events in your Google Calendar, or no events within the next 30 days.</p>
               <a 
                 href="https://calendar.google.com"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="calendar-link-button"
               >
-                Google Calendar 열기
+                Open Google Calendar
               </a>
             </div>
           </div>

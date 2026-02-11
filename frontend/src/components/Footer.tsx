@@ -53,7 +53,7 @@ const Footer: React.FC = () => {
               Global Contacts
             </a>
             <a 
-              href="#"
+              href="https://sites.google.com/globalgn.org/gflab/contacts"
               className="footer-link"
             >
               Get in Touch

@@ -61,7 +61,8 @@ async def get_google_classroom_courses(access_token: str) -> List[Dict[str, Any]
             elif response.status_code == 403:
                 print(f"[GOOGLE_API] 403 Forbidden - Permission denied")
                 print(f"[GOOGLE_API] Response: {response.text}")
-                return []
+                # 403 에러는 권한 문제이므로 예외 발생 (재인증 필요)
+                raise Exception("403 Forbidden - Google Classroom API permission is required. Please re-authenticate.")
             else:
                 print(f"[GOOGLE_API] Error response: {response.status_code} - {response.text}")
                 return []

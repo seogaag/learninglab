@@ -140,8 +140,10 @@ const Classroom: React.FC = () => {
       console.error('[My Courses] Error response:', err.response)
       console.error('[My Courses] Error message:', errorMsg)
       
-      // refresh token 관련 에러 체크
-      if (errorMsg.includes('refresh token') || errorMsg.includes('re-authenticate')) {
+      // refresh token 또는 권한 관련 에러 체크
+      if (errorMsg.includes('refresh token') || errorMsg.includes('re-authenticate') || 
+          errorMsg.includes('permission') || errorMsg.includes('403') || 
+          errorMsg.includes('Forbidden') || err.response?.status === 403) {
         setError('refresh_token_needed')
       } else {
         setError(errorMsg)
@@ -296,17 +298,17 @@ const Classroom: React.FC = () => {
                     className="classroom-link-button"
                     style={{ marginTop: '1rem', display: 'inline-block' }}
                   >
-                    Google Classroom에서 직접 확인하기
+                    Open Google Classroom directly
                   </a>
                 </div>
-              ) : myCourses.length === 0 ? (
+              ) : !loading && myCourses.length === 0 ? (
                 <div className="no-courses-container">
                   <div className="no-courses-message">
-                    <h3>수강 중인 클래스가 없습니다</h3>
-                    <p>Google Classroom에서 클래스를 등록하거나, 아래 버튼을 클릭하여 Google Classroom을 열어주세요.</p>
+                    <h3>No enrolled classes</h3>
+                    <p>Please enroll in a class on Google Classroom, or click the button below to open Google Classroom.</p>
                     <p style={{ fontSize: '0.9rem', color: '#685A55', marginTop: '0.5rem' }}>
-                      참고: Google Classroom은 보안상의 이유로 다른 사이트에 임베딩할 수 없습니다. 
-                      아래 버튼을 클릭하여 새 창에서 Google Classroom을 열어주세요.
+                      Note: Google Classroom cannot be embedded in other sites for security reasons. 
+                      Please click the button below to open Google Classroom in a new window.
                     </p>
                     <a 
                       href="https://classroom.google.com/u/0/h"
@@ -314,7 +316,7 @@ const Classroom: React.FC = () => {
                       rel="noopener noreferrer"
                       className="classroom-link-button"
                     >
-                      Google Classroom 열기
+                      Open Google Classroom
                     </a>
                   </div>
                 </div>

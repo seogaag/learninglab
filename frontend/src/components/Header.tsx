@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import './Header.css'
@@ -7,11 +7,29 @@ const Header: React.FC = () => {
   const [showDropdown, setShowDropdown] = useState(false)
   const location = useLocation()
   const { user, isLoading, login, logout } = useAuth()
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   const handleLogout = () => {
     logout()
     setShowDropdown(false)
   }
+
+  // 외부 클릭 시 드롭다운 닫기
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false)
+      }
+    }
+
+    if (showDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showDropdown])
 
   return (
     <header className="header">
@@ -54,14 +72,16 @@ const Header: React.FC = () => {
           {isLoading ? (
             <div className="loading-text">Loading...</div>
           ) : user ? (
-            <div className="user-profile" onClick={() => setShowDropdown(!showDropdown)}>
-              <img 
-                src={user.picture || 'https://via.placeholder.com/40'} 
-                alt={user.name} 
-                className="profile-img"
-              />
-              <span className="profile-name">{user.name}</span>
-              <span className="dropdown-arrow">▼</span>
+            <div className="user-profile" ref={dropdownRef}>
+              <div onClick={() => setShowDropdown(!showDropdown)} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                <img 
+                  src={user.picture || 'https://via.placeholder.com/40'} 
+                  alt={user.name} 
+                  className="profile-img"
+                />
+                <span className="profile-name">{user.name}</span>
+                <span className="dropdown-arrow">▼</span>
+              </div>
               {showDropdown && (
                 <div className="dropdown-menu">
                   <div className="dropdown-item">

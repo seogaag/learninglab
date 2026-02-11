@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from authlib.integrations.starlette_client import OAuth
@@ -17,6 +17,7 @@ from app.core.validation import (
     sanitize_string
 )
 from datetime import timedelta
+from typing import Optional
 import httpx
 import traceback
 
@@ -34,13 +35,17 @@ if settings.GOOGLE_CLIENT_ID and settings.GOOGLE_CLIENT_SECRET:
         server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
         client_kwargs={
             'scope': 'openid email profile https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.coursework.me.readonly https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/drive.readonly',
-            'access_type': 'offline',
-            'prompt': 'consent'
+            'access_type': 'offline'
+            # prompt 제거: 이미 동의한 사용자는 자동 로그인, 처음이거나 refresh_token이 없을 때만 동의 화면 표시
         }
     )
 
 @router.get("/login")
-async def login(request: Request):
+async def login(
+    request: Request, 
+    email: Optional[str] = Query(None, description="User email to check for existing refresh token"),
+    db: Session = Depends(get_db)
+):
     """Google OAuth 로그인 시작"""
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
         raise HTTPException(
@@ -65,21 +70,41 @@ async def login(request: Request):
     state = secrets.token_urlsafe(32)
     
     # 데이터베이스에 state 저장 (세션 대신)
-    db_session = next(get_db())
     try:
         oauth_state = OAuthState(state=state)
-        db_session.add(oauth_state)
-        db_session.commit()
+        db.add(oauth_state)
+        db.commit()
         print(f"[AUTH] State saved to database: {state}")
     except Exception as e:
-        db_session.rollback()
+        db.rollback()
         print(f"[AUTH] Failed to save state to database: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to initialize login"
         )
-    finally:
-        db_session.close()
+    
+    # 사용자가 이미 refresh_token을 가지고 있는지 확인
+    # refresh_token이 있으면 prompt를 제거하여 자동 로그인
+    # 없으면 select_account와 consent를 사용하여 권한을 확실히 받음
+    has_refresh_token = False
+    if email:
+        try:
+            user = db.query(User).filter(User.email == email).first()
+            if user and user.google_refresh_token:
+                has_refresh_token = True
+                print(f"[AUTH] User {email} already has refresh_token, skipping consent prompt")
+        except Exception as e:
+            print(f"[AUTH] Error checking user refresh_token: {e}")
+    
+    # prompt 파라미터 설정
+    # - refresh_token이 있으면: prompt 제거 (자동 로그인)
+    # - refresh_token이 없으면: select_account만 사용 (Google이 자동으로 처리: 처음이거나 refresh_token이 만료된 경우에만 동의 화면 표시)
+    #   참고: prompt=consent를 사용하면 매번 동의 화면이 표시되므로 사용하지 않음
+    if has_refresh_token:
+        prompt_param = ""
+    else:
+        # select_account만 사용: Google이 자동으로 처리 (처음이거나 refresh_token이 만료된 경우에만 동의 화면 표시)
+        prompt_param = "prompt=select_account&"
     
     auth_url = (
         f"https://accounts.google.com/o/oauth2/v2/auth?"
@@ -88,11 +113,11 @@ async def login(request: Request):
         f"response_type=code&"
         f"scope={scope}&"
         f"access_type=offline&"  # refresh_token을 받기 위해 필수
-        f"prompt=consent&"  # 항상 동의 화면 표시
+        f"{prompt_param}"
         f"state={state}"
     )
     
-    print(f"[AUTH] Generated OAuth URL with prompt=consent and access_type=offline")
+    print(f"[AUTH] Generated OAuth URL with {'no prompt (auto login)' if has_refresh_token else 'prompt=select_account'} and access_type=offline")
     return RedirectResponse(url=auth_url)
 
 @router.get("/callback")

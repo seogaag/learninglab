@@ -17,6 +17,99 @@ depends_on = None
 
 
 def upgrade() -> None:
+    # users table (기본 테이블)
+    op.create_table(
+        'users',
+        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('google_id', sa.String(), nullable=False),
+        sa.Column('email', sa.String(), nullable=False),
+        sa.Column('name', sa.String(), nullable=False),
+        sa.Column('picture', sa.String(), nullable=True),
+        sa.Column('google_refresh_token', sa.Text(), nullable=True),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
+        sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
+        sa.Column('is_active', sa.Boolean(), nullable=True, server_default='true'),
+        sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_users_id'), 'users', ['id'], unique=False)
+    op.create_index(op.f('ix_users_google_id'), 'users', ['google_id'], unique=True)
+    op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
+    
+    # admins table
+    op.create_table(
+        'admins',
+        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('username', sa.String(), nullable=False),
+        sa.Column('password_hash', sa.String(), nullable=False),
+        sa.Column('email', sa.String(), nullable=True),
+        sa.Column('name', sa.String(), nullable=True),
+        sa.Column('is_active', sa.Boolean(), nullable=True, server_default='true'),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
+        sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
+        sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_admins_id'), 'admins', ['id'], unique=False)
+    op.create_index(op.f('ix_admins_username'), 'admins', ['username'], unique=True)
+    
+    # banners table
+    op.create_table(
+        'banners',
+        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('title', sa.String(), nullable=False),
+        sa.Column('subtitle', sa.String(), nullable=True),
+        sa.Column('image_url', sa.String(), nullable=False),
+        sa.Column('link_url', sa.String(), nullable=True),
+        sa.Column('order', sa.Integer(), nullable=True, server_default='0'),
+        sa.Column('is_active', sa.Boolean(), nullable=True, server_default='true'),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
+        sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
+        sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_banners_id'), 'banners', ['id'], unique=False)
+    
+    # oauth_states table
+    op.create_table(
+        'oauth_states',
+        sa.Column('state', sa.String(), nullable=False),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
+        sa.PrimaryKeyConstraint('state')
+    )
+    op.create_index(op.f('ix_oauth_states_state'), 'oauth_states', ['state'], unique=False)
+    
+    # workspace_courses table
+    op.create_table(
+        'workspace_courses',
+        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('course_id', sa.String(), nullable=False),
+        sa.Column('title', sa.String(), nullable=False),
+        sa.Column('description', sa.Text(), nullable=True),
+        sa.Column('section', sa.String(), nullable=True),
+        sa.Column('room', sa.String(), nullable=True),
+        sa.Column('owner_id', sa.String(), nullable=True),
+        sa.Column('enrollment_code', sa.String(), nullable=True),
+        sa.Column('alternate_link', sa.String(), nullable=True),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
+        sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
+        sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_workspace_courses_id'), 'workspace_courses', ['id'], unique=False)
+    op.create_index(op.f('ix_workspace_courses_course_id'), 'workspace_courses', ['course_id'], unique=True)
+    
+    # page_sections table
+    op.create_table(
+        'page_sections',
+        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('section_type', sa.String(), nullable=False),
+        sa.Column('title', sa.String(), nullable=True),
+        sa.Column('content', sa.Text(), nullable=True),
+        sa.Column('order', sa.Integer(), nullable=True, server_default='0'),
+        sa.Column('is_active', sa.Boolean(), nullable=True, server_default='true'),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
+        sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
+        sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_page_sections_id'), 'page_sections', ['id'], unique=False)
+    
     # posts table
     op.create_table(
         'posts',
@@ -123,3 +216,21 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_posts_id'), table_name='posts')
     op.drop_table('posts')
     op.execute('DROP TYPE posttype')
+    
+    # 기본 테이블 삭제
+    op.drop_index(op.f('ix_page_sections_id'), table_name='page_sections')
+    op.drop_table('page_sections')
+    op.drop_index(op.f('ix_workspace_courses_course_id'), table_name='workspace_courses')
+    op.drop_index(op.f('ix_workspace_courses_id'), table_name='workspace_courses')
+    op.drop_table('workspace_courses')
+    op.drop_index(op.f('ix_oauth_states_state'), table_name='oauth_states')
+    op.drop_table('oauth_states')
+    op.drop_index(op.f('ix_banners_id'), table_name='banners')
+    op.drop_table('banners')
+    op.drop_index(op.f('ix_admins_username'), table_name='admins')
+    op.drop_index(op.f('ix_admins_id'), table_name='admins')
+    op.drop_table('admins')
+    op.drop_index(op.f('ix_users_email'), table_name='users')
+    op.drop_index(op.f('ix_users_google_id'), table_name='users')
+    op.drop_index(op.f('ix_users_id'), table_name='users')
+    op.drop_table('users')

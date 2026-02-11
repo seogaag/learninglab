@@ -21,6 +21,10 @@ router = APIRouter(prefix="/community", tags=["community"])
 
 def extract_mentions(text: str) -> List[str]:
     """텍스트에서 @mention 패턴 추출 (이메일 형식 및 사용자 이름 형식)"""
+    # 입력 검증 (SQL Injection 방지)
+    if not isinstance(text, str):
+        return []
+    
     # @email 형식 찾기
     email_pattern = r'@([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})'
     email_matches = re.findall(email_pattern, text)
@@ -31,7 +35,19 @@ def extract_mentions(text: str) -> List[str]:
     # 이메일 형식이 아닌 것만 필터링
     name_matches = [name for name in name_matches if '@' not in name]
     
-    return list(set(email_matches + name_matches))
+    # 결과 검증 및 길이 제한 (SQL Injection 방지)
+    all_mentions = list(set(email_matches + name_matches))
+    validated_mentions = []
+    for mention in all_mentions:
+        # 길이 제한 (100자)
+        if len(mention) > 100:
+            continue
+        # 특수 문자 제한 (알파벳, 숫자, 언더스코어, 점, @, 하이픈만 허용)
+        if not re.match(r'^[a-zA-Z0-9._@-]+$', mention):
+            continue
+        validated_mentions.append(mention)
+    
+    return validated_mentions
 
 def extract_tags(text: str) -> List[str]:
     """텍스트에서 #tag 패턴 추출"""
@@ -68,7 +84,15 @@ async def get_posts(
         
         # 검색 필터
         if search:
-            search_term = f"%{search}%"
+            # 입력 검증 (SQL Injection 방지)
+            search_clean = search.strip()
+            if len(search_clean) > 200:  # 길이 제한
+                search_clean = search_clean[:200]
+            # 특수 문자 제한 (SQL Injection 방지)
+            if not re.match(r'^[a-zA-Z0-9\s._@#-]+$', search_clean):
+                # 유효하지 않은 문자가 있으면 빈 결과 반환
+                return PostListResponse(posts=[], total=0, page=page, page_size=page_size)
+            search_term = f"%{search_clean}%"
             query = query.filter(
                 or_(
                     Post.title.ilike(search_term),
@@ -364,7 +388,11 @@ async def create_post(
             mentioned_user = db.query(User).filter(User.name == name).first()
             if not mentioned_user:
                 # 이름으로 찾지 못하면 이메일의 앞부분으로도 시도
-                mentioned_user = db.query(User).filter(User.email.like(f"{mention_text}@%")).first()
+                # SQL Injection 방지: mention_text 검증 (알파벳, 숫자, 언더스코어만 허용)
+                if re.match(r'^[a-zA-Z0-9_]+$', mention_text) and len(mention_text) <= 100:
+                    mentioned_user = db.query(User).filter(User.email.like(f"{mention_text}@%")).first()
+                else:
+                    mentioned_user = None
             email = mentioned_user.email if mentioned_user else None
         
         if email:
@@ -793,7 +821,11 @@ async def create_comment(
             mentioned_user = db.query(User).filter(User.name == name).first()
             if not mentioned_user:
                 # 이름으로 찾지 못하면 이메일의 앞부분으로도 시도
-                mentioned_user = db.query(User).filter(User.email.like(f"{mention_text}@%")).first()
+                # SQL Injection 방지: mention_text 검증 (알파벳, 숫자, 언더스코어만 허용)
+                if re.match(r'^[a-zA-Z0-9_]+$', mention_text) and len(mention_text) <= 100:
+                    mentioned_user = db.query(User).filter(User.email.like(f"{mention_text}@%")).first()
+                else:
+                    mentioned_user = None
             email = mentioned_user.email if mentioned_user else None
         
         if email:
@@ -922,7 +954,15 @@ async def get_users(
     
     # 검색어가 있으면 이름이나 이메일로 필터링
     if search:
-        search_term = f"%{search}%"
+        # SQL Injection 방지: 검색어 검증
+        search_clean = search.strip()
+        if len(search_clean) > 100:  # 길이 제한
+            search_clean = search_clean[:100]
+        # 특수 문자 제한 (SQL Injection 방지)
+        if not re.match(r'^[a-zA-Z0-9\s._@-]+$', search_clean):
+            # 유효하지 않은 문자가 있으면 빈 결과 반환
+            return []
+        search_term = f"%{search_clean}%"
         query = query.filter(
             or_(
                 User.name.ilike(search_term),

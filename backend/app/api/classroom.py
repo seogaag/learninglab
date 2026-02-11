@@ -64,16 +64,22 @@ async def get_courses(
     
     if not user.google_refresh_token:
         print(f"[CLASSROOM] No refresh token found for user {user.email}")
-        # refresh_token이 없으면 빈 배열 반환 (에러 대신)
-        return []
+        # refresh_token이 없으면 에러 반환 (재인증 필요)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Google refresh token not found. Please re-authenticate to grant Classroom API permissions."
+        )
     
     # Access token 가져오기
     print(f"[CLASSROOM] Getting access token from refresh token...")
     access_token = await get_access_token_from_refresh(user.google_refresh_token)
     if not access_token:
         print(f"[CLASSROOM] Failed to get access token from refresh token")
-        # access token을 가져올 수 없으면 빈 배열 반환
-        return []
+        # access token을 가져올 수 없으면 에러 반환 (재인증 필요)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Failed to get access token. Please re-authenticate to grant Classroom API permissions."
+        )
     
     print(f"[CLASSROOM] Successfully obtained access token")
     
@@ -89,6 +95,14 @@ async def get_courses(
         print(f"[CLASSROOM] Error fetching Google Classroom courses: {e}")
         import traceback
         traceback.print_exc()
+        # Google Classroom API 권한이 없는 경우 (403 에러 등)
+        error_msg = str(e)
+        if "403" in error_msg or "Forbidden" in error_msg or "permission" in error_msg.lower():
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Google Classroom API permission is required. Please re-authenticate to grant Classroom API permissions."
+            )
+        # 기타 에러는 빈 배열 반환
         return []
 
 @router.get("/workspace-courses", response_model=List[Dict[str, Any]])

@@ -269,60 +269,87 @@ const Community: React.FC = () => {
   }
 
   const renderContent = (content: string) => {
-    // @mention과 #tag 하이라이트
-    let rendered = content
+    // XSS 방지: HTML 이스케이프 함수
+    const escapeHtml = (text: string) => {
+      const div = document.createElement('div')
+      div.textContent = text
+      return div.innerHTML
+    }
     
-    // URL 패턴 감지 및 임베드 변환 (먼저 처리)
+    // URL 패턴을 플레이스홀더로 먼저 교체 (임베드 처리)
+    const placeholders: { [key: string]: string } = {}
+    let placeholderIndex = 0
+    
     // YouTube (youtube.com/watch?v=VIDEO_ID 또는 youtu.be/VIDEO_ID)
-    rendered = rendered.replace(
+    content = content.replace(
       /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)(?:\S*)?/g,
       (match, videoId) => {
-        return `<div class="embed-container youtube-embed"><iframe width="100%" height="400" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`
+        const placeholder = `__EMBED_PLACEHOLDER_${placeholderIndex}__`
+        placeholders[placeholder] = `<div class="embed-container youtube-embed"><iframe width="100%" height="400" src="https://www.youtube.com/embed/${escapeHtml(videoId)}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`
+        placeholderIndex++
+        return placeholder
       }
     )
     
     // Instagram (p, reel, tv 모두 지원)
-    rendered = rendered.replace(
+    content = content.replace(
       /(?:https?:\/\/)?(?:www\.)?instagram\.com\/(p|reel|tv)\/([a-zA-Z0-9_-]+)(?:\S*)?/g,
       (match, type, postId) => {
-        const permalink = `https://www.instagram.com/${type}/${postId}/`
-        return `<div class="embed-container instagram-embed"><blockquote class="instagram-media" data-instgrm-permalink="${permalink}" data-instgrm-version="14"></blockquote></div>`
+        const placeholder = `__EMBED_PLACEHOLDER_${placeholderIndex}__`
+        const permalink = `https://www.instagram.com/${escapeHtml(type)}/${escapeHtml(postId)}/`
+        placeholders[placeholder] = `<div class="embed-container instagram-embed"><blockquote class="instagram-media" data-instgrm-permalink="${escapeHtml(permalink)}" data-instgrm-version="14"></blockquote></div>`
+        placeholderIndex++
+        return placeholder
       }
     )
     
     // X (Twitter) - twitter.com과 x.com 모두 지원
-    rendered = rendered.replace(
+    content = content.replace(
       /(?:https?:\/\/)?(?:www\.)?(?:twitter\.com|x\.com)\/(\w+)\/status\/(\d+)(?:\S*)?/g,
       (match, username, tweetId) => {
-        return `<div class="embed-container twitter-embed"><blockquote class="twitter-tweet" data-theme="light"><a href="https://twitter.com/${username}/status/${tweetId}"></a></blockquote></div>`
+        const placeholder = `__EMBED_PLACEHOLDER_${placeholderIndex}__`
+        placeholders[placeholder] = `<div class="embed-container twitter-embed"><blockquote class="twitter-tweet" data-theme="light"><a href="https://twitter.com/${escapeHtml(username)}/status/${escapeHtml(tweetId)}"></a></blockquote></div>`
+        placeholderIndex++
+        return placeholder
       }
     )
     
     // Threads
-    rendered = rendered.replace(
+    content = content.replace(
       /(?:https?:\/\/)?(?:www\.)?threads\.net\/@(\w+)\/post\/([a-zA-Z0-9_-]+)(?:\S*)?/g,
       (match, username, postId) => {
-        const permalink = `https://www.threads.net/@${username}/post/${postId}`
-        return `<div class="embed-container threads-embed"><blockquote class="threads-embed" data-threads-permalink="${permalink}" data-threads-version="1"></blockquote></div>`
+        const placeholder = `__EMBED_PLACEHOLDER_${placeholderIndex}__`
+        const permalink = `https://www.threads.net/@${escapeHtml(username)}/post/${escapeHtml(postId)}`
+        placeholders[placeholder] = `<div class="embed-container threads-embed"><blockquote class="threads-embed" data-threads-permalink="${escapeHtml(permalink)}" data-threads-version="1"></blockquote></div>`
+        placeholderIndex++
+        return placeholder
       }
     )
     
     // 일반 URL은 링크로 변환 (이미 임베드되지 않은 경우)
-    rendered = rendered.replace(
+    content = content.replace(
       /(https?:\/\/[^\s<>"']+)/g,
       (url) => {
-        // 이미 임베드 태그 안에 있거나, 이미 링크로 변환된 경우 스킵
-        if (url.includes('</iframe>') || url.includes('</blockquote>') || url.includes('href=') || url.includes('data-instgrm') || url.includes('data-threads') || url.includes('twitter-tweet')) {
+        // 이미 플레이스홀더로 교체된 경우 스킵
+        if (url.startsWith('__EMBED_PLACEHOLDER_')) {
           return url
         }
-        // YouTube, Instagram, Twitter, Threads는 이미 처리되었으므로 스킵
-        if (url.match(/(youtube|youtu\.be|instagram|twitter|x\.com|threads)/i)) {
-          return url
-        }
-        return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`
+        const placeholder = `__EMBED_PLACEHOLDER_${placeholderIndex}__`
+        placeholders[placeholder] = `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a>`
+        placeholderIndex++
+        return placeholder
       }
     )
     
+    // 나머지 텍스트를 HTML 이스케이프
+    let rendered = escapeHtml(content)
+    
+    // 플레이스홀더를 원래 임베드로 교체
+    for (const [placeholder, embed] of Object.entries(placeholders)) {
+      rendered = rendered.replace(placeholder, embed)
+    }
+    
+    // @mention과 #tag 하이라이트 (이미 이스케이프된 텍스트에서 처리)
     rendered = rendered.replace(/@([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<span class="mention">@$1</span>')
     rendered = rendered.replace(/#(\w+)/g, '<span class="tag-inline">#$1</span>')
     return { __html: rendered }
@@ -1526,60 +1553,87 @@ const CommentItem: React.FC<{ comment: Comment; postId: number; onReply?: () => 
   }
 
   const renderContent = (content: string) => {
-    // @mention과 #tag 하이라이트
-    let rendered = content
+    // XSS 방지: HTML 이스케이프 함수
+    const escapeHtml = (text: string) => {
+      const div = document.createElement('div')
+      div.textContent = text
+      return div.innerHTML
+    }
     
-    // URL 패턴 감지 및 임베드 변환 (먼저 처리)
+    // URL 패턴을 플레이스홀더로 먼저 교체 (임베드 처리)
+    const placeholders: { [key: string]: string } = {}
+    let placeholderIndex = 0
+    
     // YouTube (youtube.com/watch?v=VIDEO_ID 또는 youtu.be/VIDEO_ID)
-    rendered = rendered.replace(
+    content = content.replace(
       /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)(?:\S*)?/g,
       (match, videoId) => {
-        return `<div class="embed-container youtube-embed"><iframe width="100%" height="400" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`
+        const placeholder = `__EMBED_PLACEHOLDER_${placeholderIndex}__`
+        placeholders[placeholder] = `<div class="embed-container youtube-embed"><iframe width="100%" height="400" src="https://www.youtube.com/embed/${escapeHtml(videoId)}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`
+        placeholderIndex++
+        return placeholder
       }
     )
     
     // Instagram (p, reel, tv 모두 지원)
-    rendered = rendered.replace(
+    content = content.replace(
       /(?:https?:\/\/)?(?:www\.)?instagram\.com\/(p|reel|tv)\/([a-zA-Z0-9_-]+)(?:\S*)?/g,
       (match, type, postId) => {
-        const permalink = `https://www.instagram.com/${type}/${postId}/`
-        return `<div class="embed-container instagram-embed"><blockquote class="instagram-media" data-instgrm-permalink="${permalink}" data-instgrm-version="14"></blockquote></div>`
+        const placeholder = `__EMBED_PLACEHOLDER_${placeholderIndex}__`
+        const permalink = `https://www.instagram.com/${escapeHtml(type)}/${escapeHtml(postId)}/`
+        placeholders[placeholder] = `<div class="embed-container instagram-embed"><blockquote class="instagram-media" data-instgrm-permalink="${escapeHtml(permalink)}" data-instgrm-version="14"></blockquote></div>`
+        placeholderIndex++
+        return placeholder
       }
     )
     
     // X (Twitter) - twitter.com과 x.com 모두 지원
-    rendered = rendered.replace(
+    content = content.replace(
       /(?:https?:\/\/)?(?:www\.)?(?:twitter\.com|x\.com)\/(\w+)\/status\/(\d+)(?:\S*)?/g,
       (match, username, tweetId) => {
-        return `<div class="embed-container twitter-embed"><blockquote class="twitter-tweet" data-theme="light"><a href="https://twitter.com/${username}/status/${tweetId}"></a></blockquote></div>`
+        const placeholder = `__EMBED_PLACEHOLDER_${placeholderIndex}__`
+        placeholders[placeholder] = `<div class="embed-container twitter-embed"><blockquote class="twitter-tweet" data-theme="light"><a href="https://twitter.com/${escapeHtml(username)}/status/${escapeHtml(tweetId)}"></a></blockquote></div>`
+        placeholderIndex++
+        return placeholder
       }
     )
     
     // Threads
-    rendered = rendered.replace(
+    content = content.replace(
       /(?:https?:\/\/)?(?:www\.)?threads\.net\/@(\w+)\/post\/([a-zA-Z0-9_-]+)(?:\S*)?/g,
       (match, username, postId) => {
-        const permalink = `https://www.threads.net/@${username}/post/${postId}`
-        return `<div class="embed-container threads-embed"><blockquote class="threads-embed" data-threads-permalink="${permalink}" data-threads-version="1"></blockquote></div>`
+        const placeholder = `__EMBED_PLACEHOLDER_${placeholderIndex}__`
+        const permalink = `https://www.threads.net/@${escapeHtml(username)}/post/${escapeHtml(postId)}`
+        placeholders[placeholder] = `<div class="embed-container threads-embed"><blockquote class="threads-embed" data-threads-permalink="${escapeHtml(permalink)}" data-threads-version="1"></blockquote></div>`
+        placeholderIndex++
+        return placeholder
       }
     )
     
     // 일반 URL은 링크로 변환 (이미 임베드되지 않은 경우)
-    rendered = rendered.replace(
+    content = content.replace(
       /(https?:\/\/[^\s<>"']+)/g,
       (url) => {
-        // 이미 임베드 태그 안에 있거나, 이미 링크로 변환된 경우 스킵
-        if (url.includes('</iframe>') || url.includes('</blockquote>') || url.includes('href=') || url.includes('data-instgrm') || url.includes('data-threads') || url.includes('twitter-tweet')) {
+        // 이미 플레이스홀더로 교체된 경우 스킵
+        if (url.startsWith('__EMBED_PLACEHOLDER_')) {
           return url
         }
-        // YouTube, Instagram, Twitter, Threads는 이미 처리되었으므로 스킵
-        if (url.match(/(youtube|youtu\.be|instagram|twitter|x\.com|threads)/i)) {
-          return url
-        }
-        return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`
+        const placeholder = `__EMBED_PLACEHOLDER_${placeholderIndex}__`
+        placeholders[placeholder] = `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a>`
+        placeholderIndex++
+        return placeholder
       }
     )
     
+    // 나머지 텍스트를 HTML 이스케이프
+    let rendered = escapeHtml(content)
+    
+    // 플레이스홀더를 원래 임베드로 교체
+    for (const [placeholder, embed] of Object.entries(placeholders)) {
+      rendered = rendered.replace(placeholder, embed)
+    }
+    
+    // @mention과 #tag 하이라이트 (이미 이스케이프된 텍스트에서 처리)
     rendered = rendered.replace(/@([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<span class="mention">@$1</span>')
     rendered = rendered.replace(/#(\w+)/g, '<span class="tag-inline">#$1</span>')
     return { __html: rendered }
