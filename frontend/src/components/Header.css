@@ -3,8 +3,8 @@
   top: 0;
   left: 0;
   right: 0;
-  background: #89A230;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   z-index: 1000;
   height: 80px;
 }
@@ -27,28 +27,15 @@
 .logo {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
   text-decoration: none;
-  color: white;
+  color: inherit;
 }
 
-.logo-icon {
-  width: 32px;
-  height: 32px;
-  background: #718B29;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  font-weight: bold;
-  font-size: 14px;
-}
-
-.logo-text {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: white;
+.logo-img {
+  height: 44px;
+  width: auto;
+  object-fit: contain;
+  display: block;
 }
 
 .header-nav {
@@ -58,21 +45,22 @@
 
 .nav-link {
   text-decoration: none;
-  color: rgba(255, 255, 255, 0.9);
+  color: #333;
   font-weight: 500;
+  font-size: 1.2rem;
   padding: 0.5rem 1rem;
   border-radius: 4px;
   transition: all 0.3s;
 }
 
 .nav-link:hover {
-  color: white;
-  background: rgba(255, 255, 255, 0.2);
+  color: #779933;
+  background: rgba(119, 153, 51, 0.08);
 }
 
 .nav-link.active {
-  color: white;
-  background: rgba(255, 255, 255, 0.2);
+  color: #779933;
+  background: rgba(119, 153, 51, 0.1);
 }
 
 .header-right {
@@ -108,7 +96,7 @@
 }
 
 .user-profile:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .profile-img {
@@ -120,12 +108,12 @@
 
 .profile-name {
   font-weight: 500;
-  color: white;
+  color: #333;
 }
 
 .dropdown-arrow {
   font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: #555;
 }
 
 .dropdown-menu {
@@ -174,6 +162,6 @@
 }
 
 .loading-text {
-  color: white;
+  color: #555;
   font-size: 0.9rem;
 }

@@ -18,8 +18,7 @@ const Header: React.FC = () => {
       <div className="header-container">
         <div className="header-left">
           <Link to="/" className="logo">
-            <div className="logo-icon">in</div>
-            <span className="logo-text">GF Lab</span>
+            <img src="/goodneighbors-logo.jpg" alt="Good Neighbors" className="logo-img" />
           </Link>
         </div>
         
