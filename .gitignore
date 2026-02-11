@@ -81,3 +81,5 @@ perf/*
 scripts/*
 docs/*
 backend/uploads/*
+
+*.pem

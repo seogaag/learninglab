@@ -214,11 +214,56 @@ cd frontend
 npm test
 ```
 
-## 📦 배포
+## 📦 다른 환경에서 배포할 때 순서
 
-프로덕션 배포를 위한 Docker 이미지 빌드:
+다른 서버나 PC에서 이 프로젝트를 처음 배포할 때는 아래 순서를 따르세요.
+
+### 1. 저장소 클론 및 이동
 ```bash
-docker-compose -f docker-compose.prod.yml up --build
+git clone https://github.com/seogaag/learninglab.git
+cd learninglab
+```
+
+### 2. 환경 변수 설정
+- `backend/.env` 파일을 생성하고 다음 항목을 채웁니다.
+  - **DATABASE_URL**: 해당 환경의 PostgreSQL 연결 문자열 (Docker 사용 시 `postgresql://user:password@db:5432/insighthub`)
+  - **SECRET_KEY**, **ALGORITHM**, **ACCESS_TOKEN_EXPIRE_MINUTES**
+  - **GOOGLE_CLIENT_ID**, **GOOGLE_CLIENT_SECRET**, **GOOGLE_REDIRECT_URI** (해당 환경의 도메인/포트에 맞게 설정)
+- (선택) `frontend/.env`에 **VITE_API_URL**을 해당 환경의 백엔드 URL로 설정
+
+### 3. Docker Compose로 서비스 실행
+```bash
+docker-compose up --build -d
+```
+- DB가 먼저 기동되고, 백엔드·프론트엔드가 순서대로 올라갑니다.
+
+### 4. 데이터베이스 테이블 생성 (최초 1회)
+- Alembic 마이그레이션 파일이 있는 경우:
+  ```bash
+  docker exec insighthub_backend alembic upgrade head
+  ```
+- 마이그레이션이 없거나 `admins` 등 테이블이 없으면, 백엔드에서 모델 기준으로 테이블을 생성하는 스크립트를 실행합니다.
+
+### 5. 관리자 계정 생성 (최초 1회)
+```bash
+docker exec insighthub_backend python scripts/create_admin_seoag68.py
+```
+- 다른 아이디/비밀번호가 필요하면 `scripts/create_admin.py` 인자로 지정해 실행합니다.
+
+### 6. 업로드 디렉터리
+- 백엔드가 이미지를 저장하는 `uploads` 디렉터리가 호스트에 없으면 생성해 두거나, `docker-compose.yml`의 volume 경로를 해당 환경에 맞게 수정합니다.
+
+### 7. 동작 확인
+- Frontend: 설정한 주소 (예: http://localhost:3000)
+- Backend API: 설정한 주소 (예: http://localhost:8000)
+- API 문서: http://localhost:8000/docs
+- 관리자 로그인: `/admin/login`에서 생성한 계정으로 로그인
+
+---
+
+프로덕션 배포 시 별도 설정 파일 사용 예:
+```bash
+docker-compose -f docker-compose.prod.yml up --build -d
 ```
 
 ## 🤝 기여하기

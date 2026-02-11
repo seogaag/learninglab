@@ -4,11 +4,12 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from sqlalchemy.orm import Session
-from app.db.database import SessionLocal
+from app.db.database import SessionLocal, engine, Base
 from app.models.admin import Admin
 
 def create_admin():
-    """관리자 계정 생성"""
+    """관리자 계정 생성 (admins 테이블 없으면 생성)"""
+    Base.metadata.create_all(bind=engine)
     db: Session = SessionLocal()
     try:
         # 기존 관리자 확인
