@@ -18,7 +18,7 @@ fi
 
 echo "Database is ready!"
 
-echo "Running database migrations to head (current version: 008)..."
+echo "Running database migrations to head (current version: 001)..."
 alembic upgrade head
 
 echo "Starting application..."

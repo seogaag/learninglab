@@ -258,6 +258,11 @@ learninglab/
   - 데이터베이스 스키마 정보
   - 비기능 요구사항
 
+- **[DEPLOYMENT.md](./DEPLOYMENT.md)**: 배포 가이드
+  - 배포 옵션 비교 (AWS Lightsail, Railway, Render, Vercel 등)
+  - 각 플랫폼별 배포 방법
+  - 비용 비교 및 추천사항
+
 ---
 
 ## 🤝 기여하기
