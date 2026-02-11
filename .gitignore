@@ -80,4 +80,6 @@ htmlcov/
 perf/*
 scripts/*
 docs/*
-uploads/*
+backend/uploads/*
+
+*.pem

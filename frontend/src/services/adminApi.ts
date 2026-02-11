@@ -63,7 +63,7 @@ adminApi.interceptors.request.use((config) => {
 export const adminAuthApi = {
   login: async (credentials: AdminLoginRequest): Promise<AdminToken> => {
     const response = await axios.post(`${API_URL}/admin/login`, credentials)
-    return response.data
+    return { access_token: response.data.access_token, token_type: response.data.token_type }
   },
   
   getMe: async (): Promise<Admin> => {

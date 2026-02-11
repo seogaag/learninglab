@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { adminBannerApi, adminCourseApi, adminUploadApi, Banner, WorkspaceCourse } from '../services/adminApi'
+import { communityApi, Post } from '../services/api'
 import './AdminDashboard.css'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState<'banners' | 'courses'>('banners')
+  const [activeTab, setActiveTab] = useState<'banners' | 'courses' | 'notices'>('banners')
+  const [notices, setNotices] = useState<Post[]>([])
+  const [showNoticeForm, setShowNoticeForm] = useState(false)
+  const [editingNotice, setEditingNotice] = useState<Post | null>(null)
   const [banners, setBanners] = useState<Banner[]>([])
   const [courses, setCourses] = useState<WorkspaceCourse[]>([])
   const [loading, setLoading] = useState(false)
@@ -34,9 +38,13 @@ const AdminDashboard: React.FC = () => {
       if (activeTab === 'banners') {
         const data = await adminBannerApi.getAll()
         setBanners(data)
-      } else {
+      } else if (activeTab === 'courses') {
         const data = await adminCourseApi.getAll()
         setCourses(data)
+      } else if (activeTab === 'notices') {
+        const adminToken = localStorage.getItem('admin_token')
+        const response = await communityApi.getPosts({ post_type: 'notice' }, adminToken || undefined)
+        setNotices(response.posts)
       }
     } catch (err: any) {
       if (err.response?.status === 401) {
@@ -128,6 +136,12 @@ const AdminDashboard: React.FC = () => {
         >
           클래스 관리
         </button>
+        <button
+          className={`tab ${activeTab === 'notices' ? 'active' : ''}`}
+          onClick={() => setActiveTab('notices')}
+        >
+          Notice 관리
+        </button>
       </div>
 
       <div className="admin-content">
@@ -176,7 +190,7 @@ const AdminDashboard: React.FC = () => {
               ))}
             </div>
           </div>
-        ) : (
+        ) : activeTab === 'courses' ? (
           <div className="courses-section">
             <div className="section-header">
               <h2>클래스 목록</h2>
@@ -207,7 +221,11 @@ const AdminDashboard: React.FC = () => {
                     <h3>{course.name}</h3>
                     {course.description && <p>{course.description}</p>}
                     <p className="item-meta">
-                      섹션: {course.section || '-'} | 조직: {course.organization || '-'} | 순서: {course.order} | 활성: {course.is_active ? '예' : '아니오'}
+                      상태: {course.course_state === 'ACTIVE' ? 'Ongoing' : course.course_state === 'PROVISIONED' ? 'Preparing' : 'Finished'} | 
+                      섹션: {course.section || '-'} | 
+                      조직: {course.organization || '-'} | 
+                      순서: {course.order} | 
+                      활성: {course.is_active ? '예' : '아니오'}
                     </p>
                   </div>
                   <div className="item-actions">
@@ -221,9 +239,163 @@ const AdminDashboard: React.FC = () => {
               ))}
             </div>
           </div>
+        ) : (
+          <div className="notices-section">
+            <div className="section-header">
+              <h2>Notice 목록</h2>
+              <button
+                className="add-button"
+                onClick={() => {
+                  setEditingNotice(null)
+                  setShowNoticeForm(true)
+                }}
+              >
+                + Notice 작성
+              </button>
+            </div>
+            {showNoticeForm && (
+              <NoticeForm
+                notice={editingNotice}
+                onSubmit={async (notice) => {
+                  try {
+                    const adminToken = localStorage.getItem('admin_token')
+                    if (!adminToken) {
+                      alert('관리자 토큰이 없습니다. 다시 로그인해주세요.')
+                      return
+                    }
+                    if (editingNotice) {
+                      await communityApi.updatePost(editingNotice.id, notice, adminToken)
+                    } else {
+                      await communityApi.createPost({
+                        post_type: 'notice',
+                        ...notice
+                      }, adminToken)
+                    }
+                    setShowNoticeForm(false)
+                    setEditingNotice(null)
+                    loadData()
+                  } catch (err: any) {
+                    console.error('Error saving notice:', err)
+                    alert(err.response?.data?.detail || 'Notice 저장에 실패했습니다.')
+                  }
+                }}
+                onCancel={() => {
+                  setShowNoticeForm(false)
+                  setEditingNotice(null)
+                }}
+              />
+            )}
+            <div className="items-list">
+              {notices.map((notice) => (
+                <div key={notice.id} className="item-card">
+                  <div className="item-info">
+                    <h3>{notice.title}</h3>
+                    <p className="item-meta">
+                      작성자: {notice.author_name || notice.author_email} | 
+                      조회: {notice.view_count} | 
+                      댓글: {notice.comment_count} | 
+                      {notice.is_pinned && ' 📌 고정'}
+                    </p>
+                  </div>
+                  <div className="item-actions">
+                    <button onClick={() => {
+                      setEditingNotice(notice)
+                      setShowNoticeForm(true)
+                    }}>수정</button>
+                    <button onClick={async () => {
+                      if (!confirm('정말 삭제하시겠습니까?')) return
+                      try {
+                        const adminToken = localStorage.getItem('admin_token')
+                        if (!adminToken) {
+                          alert('관리자 토큰이 없습니다. 다시 로그인해주세요.')
+                          return
+                        }
+                        await communityApi.deletePost(notice.id, adminToken)
+                        loadData()
+                      } catch (err: any) {
+                        console.error('Error deleting notice:', err)
+                        alert(err.response?.data?.detail || 'Notice 삭제에 실패했습니다.')
+                      }
+                    }}>삭제</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </div>
     </div>
+  )
+}
+
+// Notice Form Component
+const NoticeForm: React.FC<{
+  notice: Post | null
+  onSubmit: (notice: { title: string; content: string; is_pinned?: boolean }) => void
+  onCancel: () => void
+}> = ({ notice, onSubmit, onCancel }) => {
+  const [formData, setFormData] = useState({
+    title: notice?.title || '',
+    content: notice?.content || '',
+    is_pinned: notice?.is_pinned || false,
+  })
+
+  useEffect(() => {
+    if (notice) {
+      setFormData({
+        title: notice.title,
+        content: notice.content,
+        is_pinned: notice.is_pinned || false,
+      })
+    } else {
+      setFormData({
+        title: '',
+        content: '',
+        is_pinned: false,
+      })
+    }
+  }, [notice])
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    onSubmit(formData)
+  }
+
+  return (
+    <form className="admin-form" onSubmit={handleSubmit}>
+      <h3>{notice ? 'Notice 수정' : '새 Notice 작성'}</h3>
+      <div className="form-group">
+        <label>제목 *</label>
+        <input
+          value={formData.title}
+          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+          required
+        />
+      </div>
+      <div className="form-group">
+        <label>내용 *</label>
+        <textarea
+          value={formData.content}
+          onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+          required
+          rows={10}
+        />
+      </div>
+      <div className="form-group">
+        <label>
+          <input
+            type="checkbox"
+            checked={formData.is_pinned}
+            onChange={(e) => setFormData({ ...formData, is_pinned: e.target.checked })}
+          />
+          고정 게시글
+        </label>
+      </div>
+      <div className="form-actions">
+        <button type="submit">저장</button>
+        <button type="button" onClick={onCancel}>취소</button>
+      </div>
+    </form>
   )
 }
 
@@ -482,15 +654,19 @@ const CourseForm: React.FC<{
         />
       </div>
       <div className="form-group">
-        <label>상태</label>
+        <label>상태 *</label>
         <select
           value={formData.course_state}
           onChange={(e) => setFormData({ ...formData, course_state: e.target.value })}
+          required
         >
-          <option value="ACTIVE">ACTIVE</option>
-          <option value="ARCHIVED">ARCHIVED</option>
-          <option value="PROVISIONED">PROVISIONED</option>
+          <option value="ACTIVE">Ongoing</option>
+          <option value="PROVISIONED">Preparing</option>
+          <option value="ARCHIVED">Finished</option>
         </select>
+        <small style={{ color: '#685A55', fontSize: '0.85rem', marginTop: '0.25rem', display: 'block' }}>
+          Ongoing: 진행 중인 클래스 | Preparing: 준비 중인 클래스 | Finished: 완료된 클래스
+        </small>
       </div>
       <div className="form-group">
         <label>조직 (GFSU, GN TWN, GN USA 등)</label>

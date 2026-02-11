@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from app.core.config import settings
-from app.api import auth, classroom, calendar, admin_auth, admin_banner, admin_course, admin_upload, admin_page, public, public_page
+from app.api import auth, classroom, calendar, admin_auth, admin_banner, admin_course, admin_upload, admin_page, public, public_page, community, drive
 
 app = FastAPI(
     title="Insight Hub API",
@@ -36,6 +36,8 @@ app.include_router(admin_upload.router)
 app.include_router(admin_page.router)
 app.include_router(public.router)
 app.include_router(public_page.router)
+app.include_router(community.router)
+app.include_router(drive.router)
 
 @app.get("/")
 async def root():

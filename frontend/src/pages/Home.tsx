@@ -83,6 +83,14 @@ const Home: React.FC = () => {
     loadBanners()
   }, [])
 
+  useEffect(() => {
+    if (banners.length <= 1) return
+    const interval = setInterval(() => {
+      setCurrentBannerIndex((i) => (i >= banners.length - 1 ? 0 : i + 1))
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [banners.length])
+
   const loadBanners = async () => {
     try {
       const data = await publicApi.getBanners()
@@ -97,13 +105,28 @@ const Home: React.FC = () => {
   }
 
 
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
   const getImageUrl = (url: string): string => {
     if (!url) return ''
-    // 업로드된 이미지인 경우 전체 URL로 변환
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url
+    }
     if (url.startsWith('/admin/upload/image/')) {
-      return `http://localhost:8000${url}`
+      const parts = url.split('/')
+      const filename = parts[parts.length - 1]
+      const encoded = parts.slice(0, -1).join('/') + '/' + encodeURIComponent(filename)
+      return `${API_URL}${encoded}`
     }
     return url
+  }
+
+  const goPrev = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setCurrentBannerIndex((i) => (i <= 0 ? banners.length - 1 : i - 1))
+  }
+  const goNext = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setCurrentBannerIndex((i) => (i >= banners.length - 1 ? 0 : i + 1))
   }
 
   const currentBanner = banners.length > 0 ? banners[currentBannerIndex] : null
@@ -111,26 +134,67 @@ const Home: React.FC = () => {
   return (
     <div className="home">
       {currentBanner ? (
-        <div 
-          className="hero-section hero-banner"
-          style={{ backgroundImage: `url(${getImageUrl(currentBanner.image_url)})` }}
-          onClick={() => currentBanner.link_url && window.open(currentBanner.link_url, '_blank')}
-        >
-          {banners.length > 1 && (
-            <div className="carousel-indicators">
-              {banners.map((_, index) => (
-                <span
-                  key={index}
-                  className={`indicator ${index === currentBannerIndex ? 'active' : ''}`}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setCurrentBannerIndex(index)
-                  }}
-                />
-              ))}
+        <section className="hero-carousel" aria-label="메인 배너 캐러셀">
+          <div className="hero-carousel-inner" key={currentBannerIndex}>
+            <div
+              className="hero-carousel-image"
+              key={currentBanner.id}
+              style={{ backgroundImage: `url(${getImageUrl(currentBanner.image_url)})` }}
+            />
+            <div className="hero-carousel-text">
+              {currentBanner.subtitle && (
+                <p className="hero-carousel-subtitle">{currentBanner.subtitle}</p>
+              )}
+              <h1 className="hero-carousel-title">{currentBanner.title}</h1>
+              {currentBanner.link_url && (
+                <a
+                  href={currentBanner.link_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hero-carousel-cta"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  자세히 보기
+                </a>
+              )}
             </div>
+          </div>
+
+          {banners.length > 1 && (
+            <>
+              <button
+                type="button"
+                className="hero-carousel-arrow hero-carousel-arrow-prev"
+                onClick={goPrev}
+                aria-label="이전 슬라이드"
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                className="hero-carousel-arrow hero-carousel-arrow-next"
+                onClick={goNext}
+                aria-label="다음 슬라이드"
+              >
+                ›
+              </button>
+              <div className="hero-carousel-indicators">
+                {banners.map((_, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    className={`hero-carousel-dot ${index === currentBannerIndex ? 'active' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setCurrentBannerIndex(index)
+                    }}
+                    aria-label={`슬라이드 ${index + 1}`}
+                  />
+                ))}
+              </div>
+            </>
           )}
-        </div>
+        </section>
       ) : (
         <div className="hero-section">
           <div className="hero-overlay">

@@ -16,6 +16,7 @@ from app.models.admin import Admin
 from app.models.banner import Banner
 from app.models.workspace_course import WorkspaceCourse
 from app.models.page_section import PageSection
+from app.models.post import Post, Comment, Tag, PostTag, PostMention, CommentMention
 
 # this is the Alembic Config object
 config = context.config
