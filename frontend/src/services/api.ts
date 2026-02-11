@@ -165,6 +165,7 @@ export interface Post {
   image_url?: string
   like_count: number
   is_liked: boolean
+  is_resolved: boolean
   created_at: string
   updated_at?: string
   tags: Array<{ id: number; name: string }>
@@ -245,6 +246,7 @@ export const communityApi = {
     tags?: string[]
     mentions?: string[]
     is_pinned?: boolean
+    is_resolved?: boolean
   }, adminToken?: string): Promise<Post> => {
     const token = adminToken || getAuthToken()
     const response = await apiClient.put(`/community/posts/${postId}`, post, {
@@ -282,10 +284,37 @@ export const communityApi = {
     return response.data
   },
   
+  getPopularPosts: async (limit: number = 5): Promise<Post[]> => {
+    const token = getAuthToken()
+    const response = await apiClient.get('/community/popular-posts', {
+      params: { limit, token }
+    })
+    return response.data
+  },
+  
   toggleLike: async (postId: number): Promise<{ liked: boolean; like_count: number }> => {
     const token = getAuthToken()
     const response = await apiClient.post(`/community/posts/${postId}/like`, {}, {
       params: { token }
+    })
+    return response.data
+  },
+  
+  getUsers: async (search?: string, limit: number = 20): Promise<Array<{ email: string; name: string; picture?: string }>> => {
+    const token = getAuthToken()
+    const response = await apiClient.get('/community/users', {
+      params: { search, limit, token: token || undefined }
+    })
+    return response.data
+  },
+  
+  getMentionedPosts: async (page: number = 1, pageSize: number = 20): Promise<PostListResponse> => {
+    const token = getAuthToken()
+    if (!token) {
+      throw new Error('Authentication required')
+    }
+    const response = await apiClient.get('/community/mentioned-posts', {
+      params: { token, page, page_size: pageSize }
     })
     return response.data
   },

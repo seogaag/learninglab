@@ -37,14 +37,14 @@ const AdminDashboard: React.FC = () => {
     try {
       if (activeTab === 'banners') {
         const data = await adminBannerApi.getAll()
-        setBanners(data)
+        setBanners(data || [])
       } else if (activeTab === 'courses') {
         const data = await adminCourseApi.getAll()
-        setCourses(data)
+        setCourses(data || [])
       } else if (activeTab === 'notices') {
         const adminToken = localStorage.getItem('admin_token')
         const response = await communityApi.getPosts({ post_type: 'notice' }, adminToken || undefined)
-        setNotices(response.posts)
+        setNotices(response?.posts || [])
       }
     } catch (err: any) {
       if (err.response?.status === 401) {
@@ -52,6 +52,14 @@ const AdminDashboard: React.FC = () => {
         navigate('/admin/login')
       }
       console.error('Error loading data:', err)
+      // 에러 발생 시 빈 배열로 설정
+      if (activeTab === 'banners') {
+        setBanners([])
+      } else if (activeTab === 'courses') {
+        setCourses([])
+      } else if (activeTab === 'notices') {
+        setNotices([])
+      }
     } finally {
       setLoading(false)
     }

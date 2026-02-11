@@ -21,7 +21,7 @@ const Hub: React.FC = () => {
         </div>
 
         <p className="hub-embed-hint">
-          First-time visitor? You may see a 403 error after allowing cache. Please refresh your browser.
+          If this is the first time to visit here, please refresh your browser after allowing cache
         </p>
 
         <div className="hub-image-container">

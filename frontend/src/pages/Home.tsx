@@ -253,19 +253,13 @@ const Home: React.FC = () => {
           )}
         </section>
       ) : (
-        <div className="hero-section">
-          <div className="hero-overlay">
-            <h1 className="hero-title">Unlock Global Potential. Share. Learn, Grow.</h1>
-            <button className="hero-cta">Featured Class el Noxe!</button>
-            <div className="carousel-indicators">
-              <span className="indicator active"></span>
-              <span className="indicator"></span>
-              <span className="indicator"></span>
-              <span className="indicator"></span>
-            </div>
+        <section className="hero-carousel" aria-label="Main banner carousel" style={{ backgroundColor: 'white', minHeight: '480px' }}>
+          <div className="hero-carousel-inner" style={{ backgroundColor: 'white' }}>
+            <div className="hero-carousel-image" style={{ backgroundColor: 'white' }} />
           </div>
-        </div>
+        </section>
       )}
+      
 
       {/* Working Together Section */}
       <div className="working-together-section">

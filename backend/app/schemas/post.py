@@ -24,6 +24,7 @@ class PostUpdate(BaseModel):
     tags: Optional[List[str]] = None
     mentions: Optional[List[str]] = None
     is_pinned: Optional[bool] = None
+    is_resolved: Optional[bool] = None
 
 class TagResponse(BaseModel):
     id: int
@@ -72,6 +73,7 @@ class PostResponse(BaseModel):
     image_url: Optional[str] = None
     like_count: int = 0
     is_liked: bool = False  # 현재 사용자가 좋아요를 눌렀는지
+    is_resolved: bool = False  # Request 해결 여부
     created_at: datetime
     updated_at: Optional[datetime] = None
     tags: List[TagResponse] = []

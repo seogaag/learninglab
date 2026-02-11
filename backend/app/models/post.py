@@ -24,6 +24,7 @@ class Post(Base):
     view_count = Column(Integer, default=0)  # 조회수
     image_url = Column(String, nullable=True)  # 첨부 이미지 URL
     like_count = Column(Integer, default=0)  # 좋아요 수
+    is_resolved = Column(Boolean, default=False)  # Request 해결 여부
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     

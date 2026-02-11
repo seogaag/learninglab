@@ -8,18 +8,30 @@ from app.schemas.post import (
     PostCreate, PostUpdate, PostResponse, PostListResponse,
     CommentCreate, CommentUpdate, CommentResponse
 )
+from app.core.security import verify_token
 from typing import List, Optional
 from datetime import datetime
 import re
+import traceback
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/community", tags=["community"])
 
 def extract_mentions(text: str) -> List[str]:
-    """텍스트에서 @mention 패턴 추출 (이메일 형식)"""
-    # @username 또는 @email 형식 찾기
-    pattern = r'@([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})'
-    matches = re.findall(pattern, text)
-    return list(set(matches))
+    """텍스트에서 @mention 패턴 추출 (이메일 형식 및 사용자 이름 형식)"""
+    # @email 형식 찾기
+    email_pattern = r'@([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})'
+    email_matches = re.findall(email_pattern, text)
+    
+    # @username 형식 찾기 (이메일 형식이 아닌 것만)
+    name_pattern = r'@([a-zA-Z0-9_]+)'
+    name_matches = re.findall(name_pattern, text)
+    # 이메일 형식이 아닌 것만 필터링
+    name_matches = [name for name in name_matches if '@' not in name]
+    
+    return list(set(email_matches + name_matches))
 
 def extract_tags(text: str) -> List[str]:
     """텍스트에서 #tag 패턴 추출"""
@@ -38,87 +50,117 @@ async def get_posts(
     db: Session = Depends(get_db)
 ):
     """게시글 목록 조회 (검색 및 필터링 지원)"""
-    query = db.query(Post)
-    
-    # 타입 필터
-    if post_type:
-        query = query.filter(Post.post_type == post_type)
-    
-    # 태그 필터
-    if tag:
-        tag_obj = db.query(Tag).filter(Tag.name == tag.lower()).first()
-        if tag_obj:
-            query = query.join(PostTag).filter(PostTag.tag_id == tag_obj.id)
-        else:
-            # 태그가 없으면 빈 결과 반환
-            return PostListResponse(posts=[], total=0, page=page, page_size=page_size)
-    
-    # 검색 필터
-    if search:
-        search_term = f"%{search}%"
-        query = query.filter(
-            or_(
-                Post.title.ilike(search_term),
-                Post.content.ilike(search_term)
+    try:
+        query = db.query(Post)
+        
+        # 타입 필터
+        if post_type:
+            query = query.filter(Post.post_type == post_type)
+        
+        # 태그 필터
+        if tag:
+            tag_obj = db.query(Tag).filter(Tag.name == tag.lower()).first()
+            if tag_obj:
+                query = query.join(PostTag).filter(PostTag.tag_id == tag_obj.id)
+            else:
+                # 태그가 없으면 빈 결과 반환
+                return PostListResponse(posts=[], total=0, page=page, page_size=page_size)
+        
+        # 검색 필터
+        if search:
+            search_term = f"%{search}%"
+            query = query.filter(
+                or_(
+                    Post.title.ilike(search_term),
+                    Post.content.ilike(search_term)
+                )
             )
+        
+        # 정렬: 고정 게시글 먼저, 그 다음 최신순
+        query = query.order_by(desc(Post.is_pinned), desc(Post.created_at))
+        
+        # 전체 개수
+        total = query.count()
+        
+        # 페이지네이션
+        offset = (page - 1) * page_size
+        posts = query.offset(offset).limit(page_size).all()
+        
+        # 댓글 개수 및 좋아요 정보 추가
+        from app.models.post import PostLike
+        from app.core.security import verify_token
+        post_responses = []
+        current_user_id = None
+        if token:
+            try:
+                payload = verify_token(token)
+                if payload:
+                    user_id = payload.get("sub")
+                    if user_id:
+                        current_user_id = int(user_id)
+            except:
+                pass
+        
+        for post in posts:
+            comment_count = db.query(Comment).filter(Comment.post_id == post.id).count()
+            tags = [{"id": pt.tag.id, "name": pt.tag.name} for pt in post.tags]
+            mentions = [{"mentioned_email": pm.mentioned_email, "mentioned_name": pm.mentioned_name} for pm in post.mentions]
+            
+            # 좋아요 수 및 현재 사용자가 좋아요를 눌렀는지 확인
+            like_count = db.query(PostLike).filter(PostLike.post_id == post.id).count()
+            is_liked = False
+            if current_user_id:
+                existing_like = db.query(PostLike).filter(
+                    PostLike.post_id == post.id,
+                    PostLike.user_id == current_user_id
+                ).first()
+                is_liked = existing_like is not None
+            
+            # Notice 타입인 경우 작성자명을 'Global Partnership Center'로 표시
+            author_name = post.author_name
+            if post.post_type == "notice":
+                author_name = "Global Partnership Center"
+            
+            try:
+                post_dict = {
+                    "id": post.id,
+                    "post_type": post.post_type,
+                    "title": post.title,
+                    "content": post.content,
+                    "author_email": post.author_email,
+                    "author_name": author_name,
+                    "is_pinned": post.is_pinned,
+                    "view_count": post.view_count,
+                    "image_url": post.image_url,
+                    "like_count": like_count,
+                    "is_liked": is_liked,
+                    "is_resolved": getattr(post, 'is_resolved', False),
+                    "created_at": post.created_at,
+                    "updated_at": post.updated_at,
+                    "comment_count": comment_count,
+                    "tags": tags,
+                    "mentions": mentions
+                }
+                post_responses.append(PostResponse(**post_dict))
+            except Exception as e:
+                error_msg = f"Error creating PostResponse for post {post.id}: {e}"
+                logger.error(error_msg)
+                logger.error(traceback.format_exc())
+                print(error_msg)
+                print(traceback.format_exc())
+                raise
+        
+        return PostListResponse(
+            posts=post_responses,
+            total=total,
+            page=page,
+            page_size=page_size
         )
-    
-    # 정렬: 고정 게시글 먼저, 그 다음 최신순
-    query = query.order_by(desc(Post.is_pinned), desc(Post.created_at))
-    
-    # 전체 개수
-    total = query.count()
-    
-    # 페이지네이션
-    offset = (page - 1) * page_size
-    posts = query.offset(offset).limit(page_size).all()
-    
-    # 댓글 개수 및 좋아요 정보 추가
-    from app.models.post import PostLike
-    from app.core.security import verify_token
-    post_responses = []
-    current_user_id = None
-    if token:
-        try:
-            payload = verify_token(token)
-            if payload:
-                user_id = payload.get("sub")
-                if user_id:
-                    current_user_id = int(user_id)
-        except:
-            pass
-    
-    for post in posts:
-        comment_count = db.query(Comment).filter(Comment.post_id == post.id).count()
-        tags = [{"id": pt.tag.id, "name": pt.tag.name} for pt in post.tags]
-        mentions = [{"mentioned_email": pm.mentioned_email, "mentioned_name": pm.mentioned_name} for pm in post.mentions]
-        
-        # 좋아요 수 및 현재 사용자가 좋아요를 눌렀는지 확인
-        like_count = db.query(PostLike).filter(PostLike.post_id == post.id).count()
-        is_liked = False
-        if current_user_id:
-            existing_like = db.query(PostLike).filter(
-                PostLike.post_id == post.id,
-                PostLike.user_id == current_user_id
-            ).first()
-            is_liked = existing_like is not None
-        
-        post_dict = {
-            **post.__dict__,
-            "comment_count": comment_count,
-            "tags": tags,
-            "mentions": mentions,
-            "like_count": like_count,
-            "is_liked": is_liked
-        }
-        post_responses.append(PostResponse(**post_dict))
-    
-    return PostListResponse(
-        posts=post_responses,
-        total=total,
-        page=page,
-        page_size=page_size
-    )
+    except Exception as e:
+        error_msg = f"Error in get_posts: {e}"
+        logger.error(error_msg)
+        logger.error(traceback.format_exc())
+        raise
 
 @router.get("/posts/{post_id}", response_model=PostResponse)
 async def get_post(
@@ -162,13 +204,29 @@ async def get_post(
         except:
             pass
     
+    # Notice 타입인 경우 작성자명을 'Global Partnership Center'로 표시
+    author_name = post.author_name
+    if post.post_type == "notice":
+        author_name = "Global Partnership Center"
+    
     post_dict = {
-        **post.__dict__,
+        "id": post.id,
+        "post_type": post.post_type,
+        "title": post.title,
+        "content": post.content,
+        "author_email": post.author_email,
+        "author_name": author_name,
+        "is_pinned": post.is_pinned,
+        "view_count": post.view_count,
+        "image_url": post.image_url,
+        "like_count": like_count,
+        "is_liked": is_liked,
+        "is_resolved": getattr(post, 'is_resolved', False),
+        "created_at": post.created_at,
+        "updated_at": post.updated_at,
         "comment_count": comment_count,
         "tags": tags,
-        "mentions": mentions,
-        "like_count": like_count,
-        "is_liked": is_liked
+        "mentions": mentions
     }
     return PostResponse(**post_dict)
 
@@ -238,7 +296,7 @@ async def create_post(
             if admin_user:
                 author_id = admin_user.id
                 author_email = admin_user.email
-                author_name = admin_user.name or admin.username
+                author_name = "Global Partnership Center"  # 관리자가 작성한 Notice는 항상 'Global Partnership Center'로 표시
                 print(f"[NOTICE CREATE] Using admin user: {author_email}")
             else:
                 # 관리자 이메일로 사용자가 없으면 관리자 정보 사용
@@ -248,7 +306,7 @@ async def create_post(
                 else:
                     # 관리자 이메일이 없으면 기본 이메일 형식 사용
                     author_email = f"{admin.username}@admin.local"
-                author_name = admin.username
+                author_name = "Global Partnership Center"  # 관리자가 작성한 Notice는 항상 'Global Partnership Center'로 표시
                 # 기존 사용자 ID 사용 (또는 관리자용 더미 사용자 생성)
                 author_id = user.id
                 print(f"[NOTICE CREATE] Using admin info directly: {author_email}")
@@ -263,6 +321,8 @@ async def create_post(
                     detail="Only admins can create notice posts"
                 )
             print(f"[NOTICE CREATE] User {user.email} is an admin")
+            # 관리자가 작성한 Notice는 항상 'Global Partnership Center'로 표시
+            author_name = "Global Partnership Center"
     
     # 게시글 생성
     db_post = Post(
@@ -292,14 +352,28 @@ async def create_post(
     mentions_from_content = extract_mentions(post.content)
     all_mentions = list(set((post.mentions or []) + mentions_from_content))
     
-    for email in all_mentions:
-        mentioned_user = db.query(User).filter(User.email == email).first()
-        mention = PostMention(
-            post_id=db_post.id,
-            mentioned_email=email,
-            mentioned_name=mentioned_user.name if mentioned_user else None
-        )
-        db.add(mention)
+    for mention_text in all_mentions:
+        # 이메일 형식인지 확인
+        if '@' in mention_text and '.' in mention_text.split('@')[1]:
+            # 이메일 형식
+            email = mention_text
+            mentioned_user = db.query(User).filter(User.email == email).first()
+        else:
+            # 사용자 이름 형식 (언더스코어를 공백으로 변환)
+            name = mention_text.replace('_', ' ')
+            mentioned_user = db.query(User).filter(User.name == name).first()
+            if not mentioned_user:
+                # 이름으로 찾지 못하면 이메일의 앞부분으로도 시도
+                mentioned_user = db.query(User).filter(User.email.like(f"{mention_text}@%")).first()
+            email = mentioned_user.email if mentioned_user else None
+        
+        if email:
+            mention = PostMention(
+                post_id=db_post.id,
+                mentioned_email=email,
+                mentioned_name=mentioned_user.name if mentioned_user else None
+            )
+            db.add(mention)
     
     db.commit()
     db.refresh(db_post)
@@ -309,7 +383,19 @@ async def create_post(
     mentions = [{"mentioned_email": pm.mentioned_email, "mentioned_name": pm.mentioned_name} for pm in db_post.mentions]
     
     post_dict = {
-        **db_post.__dict__,
+        "id": db_post.id,
+        "post_type": db_post.post_type,
+        "title": db_post.title,
+        "content": db_post.content,
+        "author_email": db_post.author_email,
+        "author_name": db_post.author_name,
+        "is_pinned": db_post.is_pinned,
+        "view_count": db_post.view_count,
+        "image_url": db_post.image_url,
+        "like_count": db_post.like_count or 0,
+        "is_liked": False,
+        "created_at": db_post.created_at,
+        "updated_at": db_post.updated_at,
         "comment_count": comment_count,
         "tags": tags,
         "mentions": mentions
@@ -381,6 +467,10 @@ async def update_post(
         db_post.content = post.content
     if post.is_pinned is not None:
         db_post.is_pinned = post.is_pinned
+    if post.is_resolved is not None:
+        # Request 타입만 is_resolved 업데이트 가능
+        if db_post.post_type == "request":
+            db_post.is_resolved = post.is_resolved
     
     # 태그 업데이트
     if post.tags is not None:
@@ -407,14 +497,28 @@ async def update_post(
         mentions_from_content = extract_mentions(post.content or db_post.content)
         all_mentions = list(set((post.mentions or []) + mentions_from_content))
         
-        for email in all_mentions:
-            mentioned_user = db.query(User).filter(User.email == email).first()
-            mention = PostMention(
-                post_id=post_id,
-                mentioned_email=email,
-                mentioned_name=mentioned_user.name if mentioned_user else None
-            )
-            db.add(mention)
+        for mention_text in all_mentions:
+            # 이메일 형식인지 확인
+            if '@' in mention_text and '.' in mention_text.split('@')[1]:
+                # 이메일 형식
+                email = mention_text
+                mentioned_user = db.query(User).filter(User.email == email).first()
+            else:
+                # 사용자 이름 형식 (언더스코어를 공백으로 변환)
+                name = mention_text.replace('_', ' ')
+                mentioned_user = db.query(User).filter(User.name == name).first()
+                if not mentioned_user:
+                    # 이름으로 찾지 못하면 이메일의 앞부분으로도 시도
+                    mentioned_user = db.query(User).filter(User.email.like(f"{mention_text}@%")).first()
+                email = mentioned_user.email if mentioned_user else None
+            
+            if email:
+                mention = PostMention(
+                    post_id=post_id,
+                    mentioned_email=email,
+                    mentioned_name=mentioned_user.name if mentioned_user else None
+                )
+                db.add(mention)
     
     db.commit()
     db.refresh(db_post)
@@ -423,8 +527,39 @@ async def update_post(
     tags = [{"id": pt.tag.id, "name": pt.tag.name} for pt in db_post.tags]
     mentions = [{"mentioned_email": pm.mentioned_email, "mentioned_name": pm.mentioned_name} for pm in db_post.mentions]
     
+    # 좋아요 수 및 현재 사용자가 좋아요를 눌렀는지 확인
+    from app.models.post import PostLike
+    like_count = db.query(PostLike).filter(PostLike.post_id == post_id).count()
+    is_liked = False
+    if token:
+        try:
+            payload = verify_token(token)
+            if payload:
+                user_id = payload.get("sub")
+                if user_id:
+                    user_id_int = int(user_id)
+                    existing_like = db.query(PostLike).filter(
+                        PostLike.post_id == post_id,
+                        PostLike.user_id == user_id_int
+                    ).first()
+                    is_liked = existing_like is not None
+        except:
+            pass
+    
     post_dict = {
-        **db_post.__dict__,
+        "id": db_post.id,
+        "post_type": db_post.post_type,
+        "title": db_post.title,
+        "content": db_post.content,
+        "author_email": db_post.author_email,
+        "author_name": db_post.author_name,
+        "is_pinned": db_post.is_pinned,
+        "view_count": db_post.view_count,
+        "image_url": db_post.image_url,
+            "like_count": like_count,
+            "is_liked": is_liked,
+            "created_at": db_post.created_at,
+        "updated_at": db_post.updated_at,
         "comment_count": comment_count,
         "tags": tags,
         "mentions": mentions
@@ -646,14 +781,28 @@ async def create_comment(
     mentions_from_content = extract_mentions(comment.content)
     all_mentions = list(set((comment.mentions or []) + mentions_from_content))
     
-    for email in all_mentions:
-        mentioned_user = db.query(User).filter(User.email == email).first()
-        mention = CommentMention(
-            comment_id=db_comment.id,
-            mentioned_email=email,
-            mentioned_name=mentioned_user.name if mentioned_user else None
-        )
-        db.add(mention)
+    for mention_text in all_mentions:
+        # 이메일 형식인지 확인
+        if '@' in mention_text and '.' in mention_text.split('@')[1]:
+            # 이메일 형식
+            email = mention_text
+            mentioned_user = db.query(User).filter(User.email == email).first()
+        else:
+            # 사용자 이름 형식 (언더스코어를 공백으로 변환)
+            name = mention_text.replace('_', ' ')
+            mentioned_user = db.query(User).filter(User.name == name).first()
+            if not mentioned_user:
+                # 이름으로 찾지 못하면 이메일의 앞부분으로도 시도
+                mentioned_user = db.query(User).filter(User.email.like(f"{mention_text}@%")).first()
+            email = mentioned_user.email if mentioned_user else None
+        
+        if email:
+            mention = CommentMention(
+                comment_id=db_comment.id,
+                mentioned_email=email,
+                mentioned_name=mentioned_user.name if mentioned_user else None
+            )
+            db.add(mention)
     
     db.commit()
     db.refresh(db_comment)
@@ -677,3 +826,236 @@ async def get_tags(
     ).join(PostTag).group_by(Tag.id, Tag.name).order_by(desc("post_count")).limit(50).all()
     
     return [{"id": tag.id, "name": tag.name, "post_count": tag.post_count} for tag in tags]
+
+@router.get("/popular-posts", response_model=List[PostResponse])
+async def get_popular_posts(
+    limit: int = Query(3, ge=1, le=20, description="Number of popular posts to return"),
+    token: Optional[str] = Query(None, description="User authentication token"),
+    db: Session = Depends(get_db)
+):
+    """인기 게시글 목록 조회 (좋아요 수 기준, Forum 타입만)"""
+    from app.models.post import PostLike
+    from app.core.security import verify_token
+    
+    # Forum 타입만 필터링하고 좋아요 수 기준으로 정렬 (좋아요 수가 많은 순, 같으면 최신순)
+    posts = db.query(Post).filter(
+        Post.post_type == 'forum'
+    ).outerjoin(
+        PostLike, Post.id == PostLike.post_id
+    ).group_by(Post.id).order_by(
+        desc(func.count(PostLike.post_id)), desc(Post.created_at)
+    ).limit(limit).all()
+    
+    post_responses = []
+    current_user_id = None
+    if token:
+        try:
+            payload = verify_token(token)
+            if payload:
+                user_id = payload.get("sub")
+                if user_id:
+                    current_user_id = int(user_id)
+        except:
+            pass
+    
+    for post in posts:
+        comment_count = db.query(Comment).filter(Comment.post_id == post.id).count()
+        tags = [{"id": pt.tag.id, "name": pt.tag.name} for pt in post.tags]
+        mentions = [{"mentioned_email": pm.mentioned_email, "mentioned_name": pm.mentioned_name} for pm in post.mentions]
+        
+        # 좋아요 수 계산
+        like_count = db.query(PostLike).filter(PostLike.post_id == post.id).count()
+        
+        # 현재 사용자가 좋아요를 눌렀는지 확인
+        is_liked = False
+        if current_user_id:
+            existing_like = db.query(PostLike).filter(
+                PostLike.post_id == post.id,
+                PostLike.user_id == current_user_id
+            ).first()
+            is_liked = existing_like is not None
+        
+        post_dict = {
+            "id": post.id,
+            "post_type": post.post_type,
+            "title": post.title,
+            "content": post.content,
+            "author_email": post.author_email,
+            "author_name": post.author_name,
+            "is_pinned": post.is_pinned,
+            "view_count": post.view_count,
+            "image_url": post.image_url,
+            "like_count": like_count,
+            "is_liked": is_liked,
+            "created_at": post.created_at,
+            "updated_at": post.updated_at,
+            "comment_count": comment_count,
+            "tags": tags,
+            "mentions": mentions
+        }
+        post_responses.append(PostResponse(**post_dict))
+    
+    return post_responses
+
+@router.get("/users", response_model=List[dict])
+async def get_users(
+    search: Optional[str] = Query(None, description="Search users by name or email"),
+    limit: int = Query(20, ge=1, le=100, description="Maximum number of users to return"),
+    token: Optional[str] = Query(None, description="User authentication token"),
+    db: Session = Depends(get_db)
+):
+    """사용자 목록 조회 (멘션 자동완성용)"""
+    # 토큰 검증 (선택적)
+    current_user_id = None
+    if token:
+        try:
+            payload = verify_token(token)
+            if payload:
+                user_id = payload.get("sub")
+                if user_id:
+                    current_user_id = int(user_id)
+        except:
+            pass
+    
+    # 사용자 쿼리
+    query = db.query(User).filter(User.is_active == True)
+    
+    # 검색어가 있으면 이름이나 이메일로 필터링
+    if search:
+        search_term = f"%{search}%"
+        query = query.filter(
+            or_(
+                User.name.ilike(search_term),
+                User.email.ilike(search_term)
+            )
+        )
+    
+    # 활성 사용자만, 이름 순으로 정렬
+    users = query.order_by(User.name).limit(limit).all()
+    
+    # 응답 형식: {email, name, picture}
+    return [
+        {
+            "email": user.email,
+            "name": user.name,
+            "picture": user.picture
+        }
+        for user in users
+    ]
+
+@router.get("/mentioned-posts", response_model=PostListResponse)
+async def get_mentioned_posts(
+    token: str = Query(..., description="User authentication token"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db)
+):
+    """현재 사용자가 멘션된 게시글 목록 조회"""
+    # 토큰 검증
+    payload = verify_token(token)
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token"
+        )
+    
+    user_id = payload.get("sub")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token"
+        )
+    
+    # 현재 사용자 정보 가져오기
+    user = db.query(User).filter(User.id == int(user_id)).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # 현재 사용자가 멘션된 게시글 조회 (중복 제거, 모든 게시글 포함)
+    # distinct()와 group_by를 사용하여 중복 완전 제거
+    mentioned_post_ids = db.query(PostMention.post_id).filter(
+        PostMention.mentioned_email == user.email
+    ).distinct().all()
+    
+    # Set을 사용하여 중복 완전 제거
+    mentioned_post_ids_set = set([row[0] for row in mentioned_post_ids])
+    mentioned_post_ids_list = list(mentioned_post_ids_set)
+    
+    if not mentioned_post_ids_list:
+        mentioned_posts = []
+    else:
+        # Post를 조회하고 Set을 사용하여 중복 완전 제거
+        all_posts = db.query(Post).filter(
+            Post.id.in_(mentioned_post_ids_list)
+        ).order_by(desc(Post.created_at)).all()
+        
+        # 추가 안전장치: Set을 사용하여 중복 완전 제거
+        seen_ids = set()
+        unique_posts = []
+        for post in all_posts:
+            if post.id not in seen_ids:
+                seen_ids.add(post.id)
+                unique_posts.append(post)
+        mentioned_posts = unique_posts
+    
+    # 페이지네이션
+    total = len(mentioned_posts)
+    start = (page - 1) * page_size
+    end = start + page_size
+    posts = mentioned_posts[start:end]
+    
+    # 응답 형식 구성
+    from app.models.post import PostLike
+    post_responses = []
+    seen_post_ids = set()  # 응답에서도 중복 제거
+    
+    for post in posts:
+        # 이미 처리한 post_id는 건너뛰기
+        if post.id in seen_post_ids:
+            continue
+        seen_post_ids.add(post.id)
+        
+        comment_count = db.query(Comment).filter(Comment.post_id == post.id).count()
+        tags = [{"id": pt.tag.id, "name": pt.tag.name} for pt in post.tags]
+        mentions = [{"mentioned_email": pm.mentioned_email, "mentioned_name": pm.mentioned_name} for pm in post.mentions]
+        
+        # 좋아요 수 계산
+        like_count = db.query(PostLike).filter(PostLike.post_id == post.id).count()
+        
+        # 현재 사용자가 좋아요를 눌렀는지 확인
+        existing_like = db.query(PostLike).filter(
+            PostLike.post_id == post.id,
+            PostLike.user_id == int(user_id)
+        ).first()
+        is_liked = existing_like is not None
+        
+        post_dict = {
+            "id": post.id,
+            "post_type": post.post_type,
+            "title": post.title,
+            "content": post.content,
+            "author_email": post.author_email,
+            "author_name": post.author_name,
+            "is_pinned": post.is_pinned,
+            "view_count": post.view_count,
+            "image_url": post.image_url,
+            "like_count": like_count,
+            "is_liked": is_liked,
+            "is_resolved": getattr(post, 'is_resolved', False),
+            "created_at": post.created_at,
+            "updated_at": post.updated_at,
+            "comment_count": comment_count,
+            "tags": tags,
+            "mentions": mentions
+        }
+        post_responses.append(PostResponse(**post_dict))
+    
+    return PostListResponse(
+        posts=post_responses,
+        total=total,
+        page=page,
+        page_size=page_size
+    )
