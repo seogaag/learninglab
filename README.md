@@ -1,11 +1,11 @@
 
-# Insight Hub - Global Marketing Learning Platform
+# Good Neighbors Fundraising Lab - Global Marketing Learning Platform
 
 전세계 마케팅 직원들이 서로의 인사이트를 공유하고 학습할 수 있는 플랫폼입니다.
 
 ## 📋 프로젝트 개요
 
-Insight Hub는 글로벌 마케팅 팀을 위한 통합 학습 및 커뮤니티 플랫폼입니다. 직원들이 강의를 수강하고, 학습 진도를 관리하며, 동료들과 인사이트를 공유할 수 있는 환경을 제공합니다.
+Good Neighbors Fundraising Lab은 글로벌 마케팅 팀을 위한 통합 학습 및 커뮤니티 플랫폼입니다. 직원들이 강의를 수강하고, 학습 진도를 관리하며, 동료들과 인사이트를 공유할 수 있는 환경을 제공합니다.
 
 ### 주요 기능
 

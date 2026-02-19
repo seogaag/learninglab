@@ -84,7 +84,7 @@ VITE_API_URL=
 ## 5. Lightsail 네트워크 설정
 
 1. Lightsail 콘솔 → 인스턴스 → **Networking**
-2. **Firewall**에서 포트 **80** (HTTP) 열기
+2. **Firewall**에서 포트 **80** (HTTP), **443** (HTTPS) 열기
 
 ## 6. 배포
 
@@ -94,8 +94,60 @@ VITE_API_URL=
 ## 7. 접속
 
 - `http://<인스턴스-IP>` 로 접속
-- 도메인 연결 시: DNS A 레코드 → 인스턴스 IP, SSL(HTTPS) 추가 권장
+- 도메인 연결 시: DNS A 레코드 → 인스턴스 IP
 
-## 8. 도메인 + SSL (선택)
+## 8. 도메인 + SSL (Let's Encrypt)
 
-도메인 연결 후 Let's Encrypt로 HTTPS 적용하려면 nginx 설정에 SSL을 추가하면 됩니다.
+### 8.1 사전 준비
+
+1. 도메인 DNS A 레코드가 Lightsail 인스턴스 IP를 가리키는지 확인
+2. `backend/.env`에 프로덕션 URL 설정:
+
+```env
+FRONTEND_URL=https://your-domain.com
+GOOGLE_REDIRECT_URI=https://your-domain.com/auth/callback
+```
+
+### 8.2 인증서 발급 및 SSL 적용
+
+```bash
+# 1) HTTP로 먼저 배포 (nginx 실행됨)
+docker compose -f docker-compose.prod.yml up -d
+
+# 2) SSL 설정 스크립트 실행 (도메인, 이메일)
+chmod +x scripts/setup-ssl.sh
+./scripts/setup-ssl.sh your-domain.com admin@your-domain.com
+
+# 3) SSL 적용 후 재시작
+docker compose -f docker-compose.prod.yml -f docker-compose.ssl.yml up -d
+```
+
+### 8.3 수동 설정 (스크립트 대신)
+
+1. `nginx/nginx-ssl.conf`에서 `YOUR_DOMAIN`을 실제 도메인으로 치환
+2. certbot으로 인증서 발급:
+
+```bash
+# certbot_www 볼륨명 확인
+CERTBOT_VOL=$(docker volume ls -q | grep certbot_www)
+docker run --rm \
+  -v "${CERTBOT_VOL}:/var/www/certbot" \
+  -v /etc/letsencrypt:/etc/letsencrypt \
+  certbot/certbot certonly --webroot -w /var/www/certbot \
+  -d your-domain.com --email admin@your-domain.com --agree-tos -n
+```
+
+3. SSL Compose로 재시작:
+
+```bash
+docker compose -f docker-compose.prod.yml -f docker-compose.ssl.yml up -d
+```
+
+### 8.4 인증서 갱신 (자동화)
+
+Let's Encrypt 인증서는 90일 유효. crontab 예시:
+
+```bash
+# 매일 새벽 3시 갱신 시도
+0 3 * * * cd /home/ubuntu/learninglab && docker run --rm -v $(docker volume ls -q | grep certbot_www):/var/www/certbot -v /etc/letsencrypt:/etc/letsencrypt certbot/certbot renew && docker compose -f docker-compose.prod.yml -f docker-compose.ssl.yml exec nginx nginx -s reload
+```

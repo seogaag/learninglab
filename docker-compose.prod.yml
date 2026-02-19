@@ -9,6 +9,7 @@ services:
       - "80:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - certbot_www:/var/www/certbot:ro
     depends_on:
       - frontend
       - backend
@@ -63,4 +64,5 @@ services:
 volumes:
   postgres_data:
   uploads_data:
+  certbot_www:
 

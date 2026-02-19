@@ -53,7 +53,7 @@ async def login(
             detail="Google OAuth is not configured"
         )
     
-    redirect_uri = f"http://localhost:8000/auth/callback"
+    redirect_uri = settings.GOOGLE_REDIRECT_URI
     
     # refresh_token을 확실히 받기 위해 직접 URL 생성
     from urllib.parse import urlencode
@@ -171,7 +171,7 @@ async def callback(request: Request, code: str, state: str = None, db: Session =
     
     try:
         # 직접 토큰 교환 (refresh_token을 확실히 받기 위해)
-        redirect_uri = f"http://localhost:8000/auth/callback"
+        redirect_uri = settings.GOOGLE_REDIRECT_URI
         token_url = 'https://oauth2.googleapis.com/token'
         
         async with httpx.AsyncClient() as client:

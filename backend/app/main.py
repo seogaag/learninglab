@@ -19,7 +19,7 @@ def _ensure_posts_columns():
 
 
 app = FastAPI(
-    title="Insight Hub API",
+    title="GF Lab API",
     description="Global Marketing Learning Platform API",
     version="1.0.0",
 )
@@ -63,7 +63,7 @@ def startup():
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to Insight Hub API"}
+    return {"message": "Welcome to GF Lab API"}
 
 @app.get("/health")
 async def health_check():

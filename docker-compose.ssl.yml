@@ -1,0 +1,16 @@
+# SSL override for production
+# Usage: docker compose -f docker-compose.prod.yml -f docker-compose.ssl.yml up -d
+# Prereq: Replace YOUR_DOMAIN in nginx/nginx-ssl.conf, run certbot, set DOMAIN env
+
+services:
+  nginx:
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx-ssl.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - certbot_www:/var/www/certbot:ro
+
+volumes:
+  certbot_www:

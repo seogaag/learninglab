@@ -1,7 +1,7 @@
 # 기능 요구사항 명세서 (Functional Requirements Specification)
 
 ## 문서 정보
-- **프로젝트명**: Insight Hub - Global Marketing Learning Platform
+- **프로젝트명**: Good Neighbors Fundraising Lab - Global Marketing Learning Platform
 - **버전**: 1.0.0
 - **작성일**: 2024-01-03
 - **최종 수정일**: 2024-01-03
