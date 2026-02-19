@@ -61,8 +61,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [])
 
   const fetchUser = async (authToken: string) => {
+    const apiBase = import.meta.env.VITE_API_URL === '' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:8000')
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/auth/me`, {
+      const response = await axios.get(`${apiBase}/auth/me`, {
         params: { token: authToken }
       })
       setUser(response.data)
@@ -87,12 +88,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }
 
   const login = () => {
-    // Google OAuth 로그인 시작
-    // 이미 로그인한 사용자 또는 로컬 스토리지에 이메일이 있는 경우 이메일을 전달하여 refresh_token 확인
+    // Google OAuth 로그인 시작 (배포 환경: VITE_API_URL 비어있으면 같은 오리진 사용)
+    const apiBase = import.meta.env.VITE_API_URL === '' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:8000')
     const email = user?.email || localStorage.getItem('user_email')
     const loginUrl = email
-      ? `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/auth/login?email=${encodeURIComponent(email)}`
-      : `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/auth/login`
+      ? `${apiBase}/auth/login?email=${encodeURIComponent(email)}`
+      : `${apiBase}/auth/login`
     window.location.href = loginUrl
   }
 
