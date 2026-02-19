@@ -11,13 +11,40 @@ jobs:
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          BACKEND_SECRET_KEY: ${{ secrets.BACKEND_SECRET_KEY }}
+          BACKEND_FRONTEND_URL: ${{ secrets.BACKEND_FRONTEND_URL }}
+          BACKEND_GOOGLE_CLIENT_ID: ${{ secrets.BACKEND_GOOGLE_CLIENT_ID }}
+          BACKEND_GOOGLE_CLIENT_SECRET: ${{ secrets.BACKEND_GOOGLE_CLIENT_SECRET }}
+          BACKEND_GOOGLE_REDIRECT_URI: ${{ secrets.BACKEND_GOOGLE_REDIRECT_URI }}
         with:
           host: ${{ secrets.LIGHTSAIL_HOST }}
           username: ${{ secrets.LIGHTSAIL_USER }}
           key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          envs: POSTGRES_USER,POSTGRES_PASSWORD,POSTGRES_DB,VITE_API_URL,BACKEND_SECRET_KEY,BACKEND_FRONTEND_URL,BACKEND_GOOGLE_CLIENT_ID,BACKEND_GOOGLE_CLIENT_SECRET,BACKEND_GOOGLE_REDIRECT_URI
           script: |
             set -e
             cd ${{ secrets.LIGHTSAIL_APP_PATH }}
+
+            mkdir -p backend
+            {
+              printf 'SECRET_KEY=%s\n' "$BACKEND_SECRET_KEY"
+              printf 'FRONTEND_URL=%s\n' "$BACKEND_FRONTEND_URL"
+              printf 'GOOGLE_CLIENT_ID=%s\n' "$BACKEND_GOOGLE_CLIENT_ID"
+              printf 'GOOGLE_CLIENT_SECRET=%s\n' "$BACKEND_GOOGLE_CLIENT_SECRET"
+              printf 'GOOGLE_REDIRECT_URI=%s\n' "$BACKEND_GOOGLE_REDIRECT_URI"
+              printf 'DATABASE_URL=postgresql://%s:%s@db:5432/%s\n' "$POSTGRES_USER" "$POSTGRES_PASSWORD" "$POSTGRES_DB"
+            } > backend/.env
+
+            printf 'POSTGRES_USER=%s\n' "$POSTGRES_USER" > .env
+            printf 'POSTGRES_PASSWORD=%s\n' "$POSTGRES_PASSWORD" >> .env
+            printf 'POSTGRES_DB=%s\n' "$POSTGRES_DB" >> .env
+            printf 'VITE_API_URL=%s\n' "$VITE_API_URL" >> .env
+
             git fetch origin
             git reset --hard origin/main
             docker compose -f docker-compose.prod.yml build --no-cache 2>/dev/null || docker compose -f docker-compose.prod.yml build

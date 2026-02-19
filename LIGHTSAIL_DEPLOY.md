@@ -31,55 +31,43 @@ exit
 # 다시 SSH 접속
 ```
 
-## 3. 프로젝트 클론 및 환경 변수
+## 3. 프로젝트 클론
 
 ```bash
-# 프로젝트 클론
-git clone https://github.com/seogaag/learninglab.git
-cd learninglab
-
-# 백엔드 환경 변수
-nano backend/.env
+# 프로젝트 클론 (gflab 또는 해당 저장소)
+git clone https://github.com/julie-gpc/gflab.git
+cd gflab
 ```
 
-`backend/.env` 예시:
-
-```env
-DATABASE_URL=postgresql://user:password@db:5432/insighthub
-SECRET_KEY=your-production-secret-key-change-this
-FRONTEND_URL=https://your-domain.com
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-GOOGLE_REDIRECT_URI=https://your-domain.com/auth/callback
-# 선택: Hub Drive 접근용
-# GOOGLE_APPLICATION_CREDENTIALS=/app/credentials/service-account.json
-```
-
-프로젝트 루트 `.env` (docker-compose.prod용):
-
-```bash
-cp .env.example .env   # 또는 직접 생성
-nano .env
-```
-
-```env
-POSTGRES_USER=user
-POSTGRES_PASSWORD=strong-password-here
-POSTGRES_DB=insighthub
-VITE_API_URL=
-```
+> 환경 변수는 GitHub Secrets에 설정하면 배포 시 자동으로 `backend/.env`와 루트 `.env`가 생성됩니다. 서버에 직접 파일을 만들 필요 없습니다.
 
 ## 4. GitHub Secrets 설정
 
 1. GitHub 저장소 → **Settings** → **Secrets and variables** → **Actions**
 2. **New repository secret** 추가:
 
+### 배포용
+
 | Secret 이름 | 설명 |
 |-------------|------|
 | `LIGHTSAIL_HOST` | Lightsail 인스턴스 퍼블릭 IP (예: 3.34.123.45) |
 | `LIGHTSAIL_USER` | SSH 사용자 (보통 `ubuntu`) |
 | `LIGHTSAIL_SSH_KEY` | SSH 비밀키 전체 내용 (.pem 파일 내용) |
-| `LIGHTSAIL_APP_PATH` | 앱 경로 (예: `/home/ubuntu/learninglab`) |
+| `LIGHTSAIL_APP_PATH` | 앱 경로 (예: `/home/ubuntu/gflab`) |
+
+### 환경 변수 (배포 시 자동으로 .env 생성)
+
+| Secret 이름 | 설명 |
+|-------------|------|
+| `POSTGRES_USER` | PostgreSQL 사용자 |
+| `POSTGRES_PASSWORD` | PostgreSQL 비밀번호 |
+| `POSTGRES_DB` | PostgreSQL DB명 (예: insighthub) |
+| `VITE_API_URL` | 프론트엔드 API URL (같은 오리진이면 비워두기) |
+| `BACKEND_SECRET_KEY` | JWT/세션용 시크릿 키 |
+| `BACKEND_FRONTEND_URL` | 프론트엔드 URL (예: https://your-domain.com) |
+| `BACKEND_GOOGLE_CLIENT_ID` | Google OAuth Client ID |
+| `BACKEND_GOOGLE_CLIENT_SECRET` | Google OAuth Client Secret |
+| `BACKEND_GOOGLE_REDIRECT_URI` | OAuth 콜백 URL (예: https://your-domain.com/auth/callback) |
 
 ## 5. Lightsail 네트워크 설정
 
@@ -101,12 +89,9 @@ VITE_API_URL=
 ### 8.1 사전 준비
 
 1. 도메인 DNS A 레코드가 Lightsail 인스턴스 IP를 가리키는지 확인
-2. `backend/.env`에 프로덕션 URL 설정:
-
-```env
-FRONTEND_URL=https://your-domain.com
-GOOGLE_REDIRECT_URI=https://your-domain.com/auth/callback
-```
+2. GitHub Secrets에 프로덕션 URL 설정:
+   - `BACKEND_FRONTEND_URL`: https://your-domain.com
+   - `BACKEND_GOOGLE_REDIRECT_URI`: https://your-domain.com/auth/callback
 
 ### 8.2 인증서 발급 및 SSL 적용
 
