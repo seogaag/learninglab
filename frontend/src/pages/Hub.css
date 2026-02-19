@@ -76,6 +76,44 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   min-height: 600px;
   box-sizing: border-box;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.hub-drop-zone.hub-drop-zone-active {
+  background: #E9EADE;
+  border: 2px dashed #89A230;
+}
+
+.hub-upload-zone {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  border: 2px dashed #E9EADE;
+  text-align: center;
+}
+
+.hub-file-input {
+  display: none;
+}
+
+.hub-upload-label {
+  display: block;
+  padding: 0.75rem 1.5rem;
+  color: #57463D;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.hub-upload-label:hover {
+  color: #89A230;
+}
+
+.hub-upload-error {
+  margin: 0.5rem 0 0;
+  color: #c0392b;
+  font-size: 0.9rem;
 }
 
 .login-prompt {
@@ -192,6 +230,13 @@
 
 .drive-item-icon {
   margin-bottom: 0.75rem;
+}
+
+.drive-item-thumb {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 6px;
 }
 
 .drive-item-name {

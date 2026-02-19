@@ -10,8 +10,12 @@ const apiClient = axios.create({
   },
 })
 
-// 요청 인터셉터: 토큰 추가
+// 요청 인터셉터: 토큰 추가, FormData 시 Content-Type 제거
 apiClient.interceptors.request.use((config) => {
+  // FormData 업로드 시 Content-Type 제거 (브라우저가 boundary 포함해 설정)
+  if (config.data instanceof FormData && config.headers) {
+    delete config.headers['Content-Type']
+  }
   // params에 token이 이미 있으면 덮어쓰지 않음 (관리자 토큰 등)
   if (!config.params?.token) {
     const token = localStorage.getItem('auth_token')
@@ -328,6 +332,22 @@ export const driveApi = {
   }> => {
     const response = await apiClient.get(`/drive/folders/${folderId}/contents`, {
       params: { token }
+    })
+    return response.data
+  },
+  getSharedFolderContents: async (folderId: string): Promise<{
+    folder: any
+    contents: any[]
+    parent_id: string | null
+  }> => {
+    const response = await apiClient.get(`/drive/shared/${folderId}/contents`)
+    return response.data
+  },
+  uploadFile: async (folderId: string, file: File, token: string): Promise<{ id: string; name: string }> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const response = await apiClient.post(`/drive/folders/${folderId}/upload`, formData, {
+      params: { token },
     })
     return response.data
   },

@@ -1,6 +1,36 @@
 import httpx
+import json
+from pathlib import Path
 from typing import Optional, Dict, Any, List
 from app.core.config import settings
+
+# Service account credentials (lazy load)
+_service_account_credentials = None
+
+def _get_service_account_access_token(write: bool = False) -> Optional[str]:
+    """Service account로 Drive API용 access token 발급 (readonly 또는 write)"""
+    try:
+        cred_path = settings.GOOGLE_APPLICATION_CREDENTIALS or ""
+        json_str = settings.GOOGLE_SERVICE_ACCOUNT_JSON or ""
+        scope = "https://www.googleapis.com/auth/drive" if write else "https://www.googleapis.com/auth/drive.readonly"
+
+        if cred_path and Path(cred_path).exists():
+            from google.oauth2 import service_account
+            creds = service_account.Credentials.from_service_account_file(cred_path, scopes=[scope])
+        elif json_str.strip().startswith("{"):
+            from google.oauth2 import service_account
+            info = json.loads(json_str)
+            creds = service_account.Credentials.from_service_account_info(info, scopes=[scope])
+        else:
+            return None
+
+        from google.auth.transport.requests import Request
+        creds.refresh(Request())
+        return creds.token
+    except Exception as e:
+        print(f"[GOOGLE_API] Service account token error: {e}")
+        return None
+
 
 async def get_access_token_from_refresh(refresh_token: str) -> Optional[str]:
     """Refresh token을 사용하여 새로운 access token 가져오기"""

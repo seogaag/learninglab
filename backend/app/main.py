@@ -1,8 +1,22 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
+from sqlalchemy import text
 from app.core.config import settings
+from app.db.database import engine
 from app.api import auth, classroom, calendar, admin_auth, admin_banner, admin_course, admin_upload, admin_page, public, public_page, community, drive
+
+
+def _ensure_posts_columns():
+    """Ensure posts table has is_resolved and like_count (for DBs created before these columns existed)."""
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_resolved BOOLEAN DEFAULT false"))
+            conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS like_count INTEGER DEFAULT 0"))
+    except Exception:
+        # Table might not exist yet (migrations not run)
+        pass
+
 
 app = FastAPI(
     title="Insight Hub API",
@@ -38,6 +52,11 @@ app.include_router(public.router)
 app.include_router(public_page.router)
 app.include_router(community.router)
 app.include_router(drive.router)
+
+@app.on_event("startup")
+def startup():
+    _ensure_posts_columns()
+
 
 @app.get("/")
 async def root():

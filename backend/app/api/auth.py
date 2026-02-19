@@ -34,7 +34,7 @@ if settings.GOOGLE_CLIENT_ID and settings.GOOGLE_CLIENT_SECRET:
         client_secret=settings.GOOGLE_CLIENT_SECRET,
         server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
         client_kwargs={
-            'scope': 'openid email profile https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.coursework.me.readonly https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/drive.readonly',
+            'scope': 'openid email profile https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.coursework.me.readonly https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file',
             'access_type': 'offline'
             # prompt 제거: 이미 동의한 사용자는 자동 로그인, 처음이거나 refresh_token이 없을 때만 동의 화면 표시
         }
@@ -61,7 +61,9 @@ async def login(
         "openid email profile "
         "https://www.googleapis.com/auth/classroom.courses.readonly "
         "https://www.googleapis.com/auth/classroom.coursework.me.readonly "
-        "https://www.googleapis.com/auth/calendar.readonly"
+        "https://www.googleapis.com/auth/calendar.readonly "
+        "https://www.googleapis.com/auth/drive.readonly "
+        "https://www.googleapis.com/auth/drive.file"
     )
     
     # state 파라미터 생성 (CSRF 방지) - 데이터베이스에 저장
@@ -346,7 +348,8 @@ async def callback(request: Request, code: str, state: str = None, db: Session =
         print(f"[AUTH] JWT token created successfully")
         
         # 프론트엔드로 리다이렉트 (토큰 포함)
-        frontend_url = f"http://localhost:3000/auth/callback?token={access_token}"
+        frontend_base = settings.FRONTEND_URL.rstrip("/")
+        frontend_url = f"{frontend_base}/auth/callback?token={access_token}"
         print(f"[AUTH] Redirecting to frontend...")
         return RedirectResponse(url=frontend_url)
         
