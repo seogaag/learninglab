@@ -31,10 +31,10 @@ def create_table():
                 ON workspace_courses (id)
             """))
             conn.commit()
-            print("✅ workspace_courses 테이블이 성공적으로 생성되었습니다.")
+            print("workspace_courses table created successfully.")
             return True
         except Exception as e:
-            print(f"❌ 오류 발생: {e}")
+            print(f"Error occurred: {e}")
             import traceback
             traceback.print_exc()
             return False

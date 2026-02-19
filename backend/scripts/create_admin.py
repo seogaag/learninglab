@@ -14,14 +14,14 @@ def create_admin(username: str, password: str, email: str = None, name: str = No
         # 기존 관리자 확인
         existing = db.query(Admin).filter(Admin.username == username).first()
         if existing:
-            print(f"❌ 관리자 '{username}'가 이미 존재합니다.")
+            print(f"Admin '{username}' already exists.")
             return False
         
         # 새 관리자 생성
         try:
             password_hash = Admin.hash_password(password)
         except Exception as e:
-            print(f"❌ 비밀번호 해시 생성 오류: {e}")
+            print(f"Password hash creation error: {e}")
             # 직접 bcrypt 사용
             from passlib.context import CryptContext
             pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -36,18 +36,18 @@ def create_admin(username: str, password: str, email: str = None, name: str = No
         )
         db.add(admin)
         db.commit()
-        print(f"✅ 관리자 '{username}'가 성공적으로 생성되었습니다.")
+        print(f"Admin '{username}' created successfully.")
         return True
     except Exception as e:
         db.rollback()
-        print(f"❌ 오류 발생: {e}")
+        print(f"Error occurred: {e}")
         return False
     finally:
         db.close()
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
-        print("사용법: python create_admin.py <username> <password> [email] [name]")
+        print("Usage: python create_admin.py <username> <password> [email] [name]")
         sys.exit(1)
     
     username = sys.argv[1]

@@ -16,26 +16,33 @@ async def admin_login(
     db: Session = Depends(get_db)
 ):
     """관리자 로그인 (username/password)"""
+    print(f"[ADMIN LOGIN] Request received username={credentials.username}")
+    
     admin = db.query(Admin).filter(Admin.username == credentials.username).first()
     
     if not admin:
+        print(f"[ADMIN LOGIN] Admin not found: {credentials.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password"
         )
     
     if not admin.is_active:
+        print(f"[ADMIN LOGIN] Inactive account: {credentials.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Admin account is inactive"
         )
     
-    if not admin.verify_password(credentials.password):
+    pw_ok = admin.verify_password(credentials.password)
+    print(f"[ADMIN LOGIN] Password verification result: {pw_ok}")
+    if not pw_ok:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password"
         )
     
+    print(f"[ADMIN LOGIN] Success: {credentials.username}")
     # 관리자 JWT 토큰 생성 (role: admin)
     access_token = create_access_token(
         data={"sub": str(admin.id), "role": "admin"},

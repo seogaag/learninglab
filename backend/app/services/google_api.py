@@ -84,7 +84,7 @@ async def get_google_classroom_courses(access_token: str) -> List[Dict[str, Any]
                         print(f"[GOOGLE_API] Found {len(courses)} total courses")
                 
                 # 클래스 정보 로깅
-                for course in courses[:3]:  # 처음 3개만 로깅
+                for course in courses[:3]:  # Log first 3 only
                     print(f"[GOOGLE_API] Course: {course.get('name', 'N/A')} (ID: {course.get('id', 'N/A')}, State: {course.get('courseState', 'N/A')})")
                 
                 return courses
