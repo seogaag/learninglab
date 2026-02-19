@@ -96,7 +96,7 @@ const Header: React.FC = () => {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="dropdown-item" 
-                    onClick={(e) => { setShowDropdown(false); }}
+                    onClick={() => { setShowDropdown(false); }}
                   >
                     Settings
                   </a>

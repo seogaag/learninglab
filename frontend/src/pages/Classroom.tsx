@@ -445,13 +445,6 @@ const Classroom: React.FC = () => {
                         // 상대 경로인 경우 절대 URL로 변환
                         if (url.startsWith('/admin/upload/image/')) {
                           // URL 인코딩 처리 (한글 파일명 등)
-                          const encodedPath = url.split('/').map((part, index) => {
-                            if (index > 0) {
-                              return encodeURIComponent(part)
-                            }
-                            return part
-                          }).join('/').replace('/admin/upload/image/', '/admin/upload/image/')
-                          
                           // 마지막 파일명만 인코딩
                           const pathParts = url.split('/')
                           const filename = pathParts[pathParts.length - 1]

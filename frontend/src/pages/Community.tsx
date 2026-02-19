@@ -18,7 +18,7 @@ const Community: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
   const [showPostForm, setShowPostForm] = useState(false)
-  const [showCommentForm, setShowCommentForm] = useState(false)
+  const [, setShowCommentForm] = useState(false)
   const [editingPost, setEditingPost] = useState<Post | null>(null)
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
@@ -925,7 +925,7 @@ const PostForm: React.FC<{
   onSuccess: () => void
   onCancel: () => void
 }> = ({ boardType, editingPost, onSuccess, onCancel }) => {
-  const { user } = useAuth()
+  useAuth()
   const [title, setTitle] = useState(editingPost?.title || '')
   const [content, setContent] = useState(editingPost?.content || '')
   const [submitting, setSubmitting] = useState(false)
@@ -971,7 +971,6 @@ const PostForm: React.FC<{
     const lastAtIndex = textBeforeCursor.lastIndexOf('@')
     
     if (lastAtIndex !== -1) {
-      const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1)
       // 사용자 이름으로 멘션 (공백이 있으면 언더스코어로 대체)
       const mentionName = user.name || user.email.split('@')[0]
       const safeName = mentionName.replace(/\s+/g, '_')
