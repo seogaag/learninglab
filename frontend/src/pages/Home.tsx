@@ -1,14 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
 import { publicApi, Banner } from '../services/api'
 import './Home.css'
-
-interface WorkingTogetherItem {
-  id: number
-  image: string
-  caption: string
-}
 
 interface WorkingTogetherProject {
   id: number

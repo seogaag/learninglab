@@ -283,7 +283,7 @@ const Community: React.FC = () => {
     // YouTube (youtube.com/watch?v=VIDEO_ID 또는 youtu.be/VIDEO_ID)
     content = content.replace(
       /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)(?:\S*)?/g,
-      (match, videoId) => {
+      (_match, videoId) => {
         const placeholder = `__EMBED_PLACEHOLDER_${placeholderIndex}__`
         placeholders[placeholder] = `<div class="embed-container youtube-embed"><iframe width="100%" height="400" src="https://www.youtube.com/embed/${escapeHtml(videoId)}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`
         placeholderIndex++
@@ -294,7 +294,7 @@ const Community: React.FC = () => {
     // Instagram (p, reel, tv 모두 지원)
     content = content.replace(
       /(?:https?:\/\/)?(?:www\.)?instagram\.com\/(p|reel|tv)\/([a-zA-Z0-9_-]+)(?:\S*)?/g,
-      (match, type, postId) => {
+      (_match, type, postId) => {
         const placeholder = `__EMBED_PLACEHOLDER_${placeholderIndex}__`
         const permalink = `https://www.instagram.com/${escapeHtml(type)}/${escapeHtml(postId)}/`
         placeholders[placeholder] = `<div class="embed-container instagram-embed"><blockquote class="instagram-media" data-instgrm-permalink="${escapeHtml(permalink)}" data-instgrm-version="14"></blockquote></div>`
@@ -306,7 +306,7 @@ const Community: React.FC = () => {
     // X (Twitter) - twitter.com과 x.com 모두 지원
     content = content.replace(
       /(?:https?:\/\/)?(?:www\.)?(?:twitter\.com|x\.com)\/(\w+)\/status\/(\d+)(?:\S*)?/g,
-      (match, username, tweetId) => {
+      (_match, username, tweetId) => {
         const placeholder = `__EMBED_PLACEHOLDER_${placeholderIndex}__`
         placeholders[placeholder] = `<div class="embed-container twitter-embed"><blockquote class="twitter-tweet" data-theme="light"><a href="https://twitter.com/${escapeHtml(username)}/status/${escapeHtml(tweetId)}"></a></blockquote></div>`
         placeholderIndex++
@@ -317,7 +317,7 @@ const Community: React.FC = () => {
     // Threads
     content = content.replace(
       /(?:https?:\/\/)?(?:www\.)?threads\.net\/@(\w+)\/post\/([a-zA-Z0-9_-]+)(?:\S*)?/g,
-      (match, username, postId) => {
+      (_match, username, postId) => {
         const placeholder = `__EMBED_PLACEHOLDER_${placeholderIndex}__`
         const permalink = `https://www.threads.net/@${escapeHtml(username)}/post/${escapeHtml(postId)}`
         placeholders[placeholder] = `<div class="embed-container threads-embed"><blockquote class="threads-embed" data-threads-permalink="${escapeHtml(permalink)}" data-threads-version="1"></blockquote></div>`
@@ -1567,7 +1567,7 @@ const CommentItem: React.FC<{ comment: Comment; postId: number; onReply?: () => 
     // YouTube (youtube.com/watch?v=VIDEO_ID 또는 youtu.be/VIDEO_ID)
     content = content.replace(
       /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)(?:\S*)?/g,
-      (match, videoId) => {
+      (_match, videoId) => {
         const placeholder = `__EMBED_PLACEHOLDER_${placeholderIndex}__`
         placeholders[placeholder] = `<div class="embed-container youtube-embed"><iframe width="100%" height="400" src="https://www.youtube.com/embed/${escapeHtml(videoId)}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`
         placeholderIndex++
@@ -1578,7 +1578,7 @@ const CommentItem: React.FC<{ comment: Comment; postId: number; onReply?: () => 
     // Instagram (p, reel, tv 모두 지원)
     content = content.replace(
       /(?:https?:\/\/)?(?:www\.)?instagram\.com\/(p|reel|tv)\/([a-zA-Z0-9_-]+)(?:\S*)?/g,
-      (match, type, postId) => {
+      (_match, type, postId) => {
         const placeholder = `__EMBED_PLACEHOLDER_${placeholderIndex}__`
         const permalink = `https://www.instagram.com/${escapeHtml(type)}/${escapeHtml(postId)}/`
         placeholders[placeholder] = `<div class="embed-container instagram-embed"><blockquote class="instagram-media" data-instgrm-permalink="${escapeHtml(permalink)}" data-instgrm-version="14"></blockquote></div>`
@@ -1590,7 +1590,7 @@ const CommentItem: React.FC<{ comment: Comment; postId: number; onReply?: () => 
     // X (Twitter) - twitter.com과 x.com 모두 지원
     content = content.replace(
       /(?:https?:\/\/)?(?:www\.)?(?:twitter\.com|x\.com)\/(\w+)\/status\/(\d+)(?:\S*)?/g,
-      (match, username, tweetId) => {
+      (_match, username, tweetId) => {
         const placeholder = `__EMBED_PLACEHOLDER_${placeholderIndex}__`
         placeholders[placeholder] = `<div class="embed-container twitter-embed"><blockquote class="twitter-tweet" data-theme="light"><a href="https://twitter.com/${escapeHtml(username)}/status/${escapeHtml(tweetId)}"></a></blockquote></div>`
         placeholderIndex++
@@ -1601,7 +1601,7 @@ const CommentItem: React.FC<{ comment: Comment; postId: number; onReply?: () => 
     // Threads
     content = content.replace(
       /(?:https?:\/\/)?(?:www\.)?threads\.net\/@(\w+)\/post\/([a-zA-Z0-9_-]+)(?:\S*)?/g,
-      (match, username, postId) => {
+      (_match, username, postId) => {
         const placeholder = `__EMBED_PLACEHOLDER_${placeholderIndex}__`
         const permalink = `https://www.threads.net/@${escapeHtml(username)}/post/${escapeHtml(postId)}`
         placeholders[placeholder] = `<div class="embed-container threads-embed"><blockquote class="threads-embed" data-threads-permalink="${escapeHtml(permalink)}" data-threads-version="1"></blockquote></div>`
