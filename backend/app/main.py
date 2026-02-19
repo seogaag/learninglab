@@ -30,10 +30,13 @@ app.add_middleware(
     secret_key=settings.SECRET_KEY
 )
 
-# CORS 설정
+# CORS 설정 (FRONTEND_URL 또는 기본값)
+_cors_origins = [o.strip() for o in settings.FRONTEND_URL.split(",") if o.strip()]
+if not _cors_origins:
+    _cors_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
