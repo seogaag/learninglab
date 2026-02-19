@@ -62,7 +62,7 @@ cd gflab
 | `POSTGRES_USER` | PostgreSQL 사용자 |
 | `POSTGRES_PASSWORD` | PostgreSQL 비밀번호 |
 | `POSTGRES_DB` | PostgreSQL DB명 (예: insighthub) |
-| `VITE_API_URL` | 프론트엔드 API URL (같은 오리진이면 비워두기) |
+| `VITE_API_URL` | 프론트엔드 API URL (같은 오리진이면 **시크릿을 만들지 않음** – 빈 값 처리됨) |
 | `BACKEND_SECRET_KEY` | JWT/세션용 시크릿 키 |
 | `BACKEND_FRONTEND_URL` | 프론트엔드 URL (예: https://your-domain.com) |
 | `BACKEND_GOOGLE_CLIENT_ID` | Google OAuth Client ID |

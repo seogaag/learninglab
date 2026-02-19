@@ -25,6 +25,7 @@ jobs:
           host: ${{ secrets.LIGHTSAIL_HOST }}
           username: ${{ secrets.LIGHTSAIL_USER }}
           key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          command_timeout: 60m
           envs: POSTGRES_USER,POSTGRES_PASSWORD,POSTGRES_DB,VITE_API_URL,BACKEND_SECRET_KEY,BACKEND_FRONTEND_URL,BACKEND_GOOGLE_CLIENT_ID,BACKEND_GOOGLE_CLIENT_SECRET,BACKEND_GOOGLE_REDIRECT_URI
           script: |
             set -e
@@ -47,6 +48,6 @@ jobs:
 
             git fetch origin
             git reset --hard origin/main
-            docker compose -f docker-compose.prod.yml build --no-cache 2>/dev/null || docker compose -f docker-compose.prod.yml build
+            docker compose -f docker-compose.prod.yml build
             docker compose -f docker-compose.prod.yml up -d
             docker image prune -f
