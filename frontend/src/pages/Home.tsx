@@ -154,18 +154,11 @@ const Home: React.FC = () => {
   }
 
 
-  const API_URL = getApiBase()
+  const apiBase = getApiBase()
   const getImageUrl = (url: string): string => {
     if (!url) return ''
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url
-    }
-    if (url.startsWith('/admin/upload/image/')) {
-      const parts = url.split('/')
-      const filename = parts[parts.length - 1]
-      const encoded = parts.slice(0, -1).join('/') + '/' + encodeURIComponent(filename)
-      return `${API_URL}${encoded}`
-    }
+    if (url.startsWith('http://') || url.startsWith('https://')) return url
+    if (url.startsWith('/admin/upload/image/')) return `${apiBase}${url}`
     return url
   }
 

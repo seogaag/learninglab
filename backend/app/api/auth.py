@@ -123,8 +123,19 @@ async def login(
     return RedirectResponse(url=auth_url)
 
 @router.get("/callback")
-async def callback(request: Request, code: str, state: str = None, db: Session = Depends(get_db)):
+async def callback(
+    request: Request,
+    code: Optional[str] = Query(None, description="OAuth authorization code from Google"),
+    state: Optional[str] = Query(None, description="CSRF state"),
+    error: Optional[str] = Query(None, description="OAuth error if user denied"),
+    db: Session = Depends(get_db)
+):
     """Google OAuth 콜백 처리 (보안 강화)"""
+    frontend_base = settings.FRONTEND_URL.rstrip('/')
+    if not code:
+        # code 없이 접근한 경우 또는 OAuth 거부 → 프론트 홈으로
+        url = f"{frontend_base}/?error={error}" if error else f"{frontend_base}/"
+        return RedirectResponse(url=url)
     print(f"[AUTH] Callback received - code: {code[:20]}..., state: {state}")
     
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:

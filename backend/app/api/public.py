@@ -10,15 +10,13 @@ router = APIRouter(prefix="/public", tags=["public"])
 
 @router.get("/banners")
 async def get_public_banners(db: Session = Depends(get_db)):
-    """공개 배너 목록 조회 (활성화된 것만). 이미지 URL은 절대 경로 + 한글 인코딩으로 반환."""
+    """공개 배너 목록 조회 (활성화된 것만). 이미지 URL은 상대 경로로 반환 (프론트엔드가 same-origin 처리)."""
     from urllib.parse import quote
-    import os
 
     banners = db.query(Banner).filter(
         Banner.is_active == True
     ).order_by(Banner.order.asc()).all()
 
-    api_url = os.getenv("API_URL", "http://localhost:8000").rstrip("/")
     result = []
     for b in banners:
         image_url = b.image_url or ""
@@ -26,8 +24,7 @@ async def get_public_banners(db: Session = Depends(get_db)):
             path_parts = image_url.split("/")
             filename = path_parts[-1]
             encoded_filename = quote(filename, safe="")
-            encoded_path = "/".join(path_parts[:-1]) + "/" + encoded_filename
-            image_url = f"{api_url}{encoded_path}"
+            image_url = "/".join(path_parts[:-1]) + "/" + encoded_filename
         result.append({
             "id": b.id,
             "title": b.title,
