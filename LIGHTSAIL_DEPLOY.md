@@ -67,7 +67,8 @@ cd gflab
 | `BACKEND_FRONTEND_URL` | 프론트엔드 URL. IP/도메인 둘 다 쓰면 쉼표로 구분 (예: `https://your-domain.com,http://3.34.123.45`) |
 | `BACKEND_GOOGLE_CLIENT_ID` | Google OAuth Client ID |
 | `BACKEND_GOOGLE_CLIENT_SECRET` | Google OAuth Client Secret |
-| `BACKEND_GOOGLE_REDIRECT_URI` | OAuth 콜백 URL. CloudFront 사용 시 CloudFront URL (예: https://d3sdbbcgd4ztxv.cloudfront.net/auth/callback) |
+| `BACKEND_GOOGLE_REDIRECT_URI` | OAuth 콜백 URL. CloudFront 사용 시 CloudFront URL |
+| `GOOGLE_SERVICE_ACCOUNT_JSON` | (선택) Drive 공유 폴더 조회용. 서비스 계정 JSON 전체. 폴더를 서비스 계정 이메일과 공유 필요 |
 
 ## 5. Lightsail 네트워크 설정
 
