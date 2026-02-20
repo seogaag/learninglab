@@ -42,12 +42,17 @@ const Hub: React.FC = () => {
         try {
           res = await driveApi.getFolderContents(fid, token)
         } catch (authErr: any) {
-          const detail = authErr.response?.data?.detail || ''
-          const isInvalidToken = authErr.response?.status === 401 || (typeof detail === 'string' && detail.toLowerCase().includes('invalid token'))
+          const isInvalidToken = authErr.response?.status === 401 ||
+            (typeof (authErr.response?.data?.detail) === 'string' && authErr.response.data.detail.toLowerCase().includes('invalid token'))
           if (isInvalidToken) {
             res = await driveApi.getSharedFolderContents(fid)
           } else {
-            throw authErr
+            // 권한 없음, 서비스 미설정 등: 공유 폴더로 폴백
+            try {
+              res = await driveApi.getSharedFolderContents(fid)
+            } catch {
+              throw authErr
+            }
           }
         }
       } else {
@@ -56,7 +61,8 @@ const Hub: React.FC = () => {
       setData(res)
     } catch (err: any) {
       const msg = err.response?.data?.detail || err.message || 'Failed to load folder'
-      setError(typeof msg === 'string' ? msg : JSON.stringify(msg))
+      const errStr = (typeof msg === 'string' ? msg : JSON.stringify(msg)).trim()
+      setError(errStr || 'Unable to load folder. Try signing in or refreshing.')
       setData(null)
     } finally {
       setLoading(false)

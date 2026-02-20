@@ -308,6 +308,9 @@ const Classroom: React.FC = () => {
                     <h3>No enrolled classes</h3>
                     <p>Please enroll in a class on Google Classroom, or click the button below to open Google Classroom.</p>
                     <p style={{ fontSize: '0.9rem', color: '#685A55', marginTop: '0.5rem' }}>
+                      If you already have classes: try signing out and signing in again to refresh Classroom permissions.
+                    </p>
+                    <p style={{ fontSize: '0.9rem', color: '#685A55', marginTop: '0.25rem' }}>
                       Note: Google Classroom cannot be embedded in other sites for security reasons. 
                       Please click the button below to open Google Classroom in a new window.
                     </p>
@@ -315,7 +318,7 @@ const Classroom: React.FC = () => {
                       href="https://classroom.google.com/u/0/h"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="classroom-link-button"
+                      className="classroom-link-button classroom-link-button-primary"
                     >
                       Open Google Classroom
                     </a>
