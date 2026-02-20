@@ -68,7 +68,7 @@ cd gflab
 | `BACKEND_GOOGLE_CLIENT_ID` | Google OAuth Client ID |
 | `BACKEND_GOOGLE_CLIENT_SECRET` | Google OAuth Client Secret |
 | `BACKEND_GOOGLE_REDIRECT_URI` | OAuth 콜백 URL. CloudFront 사용 시 CloudFront URL |
-| `GOOGLE_SERVICE_ACCOUNT_JSON` | (선택) Drive 공유 폴더 조회용. 서비스 계정 JSON 전체. 폴더를 서비스 계정 이메일과 공유 필요 |
+| `GOOGLE_SERVICE_ACCOUNT_JSON` | (선택) Drive 공유 폴더 조회용. 서비스 계정 JSON 전체(한 줄, minify). 폴더 0AFT...PVA를 서비스 계정 이메일과 공유 필요 |
 
 ## 5. Lightsail 네트워크 설정
 

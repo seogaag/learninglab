@@ -336,14 +336,6 @@ export const driveApi = {
     })
     return response.data
   },
-  getSharedFolderContents: async (folderId: string): Promise<{
-    folder: any
-    contents: any[]
-    parent_id: string | null
-  }> => {
-    const response = await apiClient.get(`/drive/shared/${folderId}/contents`)
-    return response.data
-  },
   uploadFile: async (folderId: string, file: File, token: string): Promise<{ id: string; name: string }> => {
     const formData = new FormData()
     formData.append('file', file)

@@ -39,24 +39,9 @@ const Hub: React.FC = () => {
     try {
       let res
       if (token) {
-        try {
-          res = await driveApi.getFolderContents(fid, token)
-        } catch (authErr: any) {
-          const isInvalidToken = authErr.response?.status === 401 ||
-            (typeof (authErr.response?.data?.detail) === 'string' && authErr.response.data.detail.toLowerCase().includes('invalid token'))
-          if (isInvalidToken) {
-            res = await driveApi.getSharedFolderContents(fid)
-          } else {
-            // 권한 없음, 서비스 미설정 등: 공유 폴더로 폴백
-            try {
-              res = await driveApi.getSharedFolderContents(fid)
-            } catch {
-              throw authErr
-            }
-          }
-        }
+        res = await driveApi.getFolderContents(fid, token)
       } else {
-        res = await driveApi.getSharedFolderContents(fid)
+        throw new Error('Sign in required')
       }
       setData(res)
     } catch (err: any) {
@@ -70,12 +55,18 @@ const Hub: React.FC = () => {
   }
 
   useEffect(() => {
-    if (folderId) {
-      loadFolder(folderId)
-    } else {
+    if (!folderId) {
       setData(null)
       setError(null)
+      return
     }
+    // 미로그인 시 API 호출 안 함 (로그인한 사용자 계정으로만 조회)
+    if (!token || !user) {
+      setData(null)
+      setError(null)
+      return
+    }
+    loadFolder(folderId)
   }, [token, folderId, user])
 
   const handleFolderClick = (item: DriveItem) => {
@@ -209,7 +200,7 @@ const Hub: React.FC = () => {
           )}
 
           {loading && <div className="drive-loading">Loading folder contents...</div>}
-          {error && (
+          {error && !showLoginPrompt && (
             <div className="drive-empty" style={{ color: '#c0392b' }}>
               {error}
               {error?.includes('refresh token') && (
