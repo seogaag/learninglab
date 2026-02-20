@@ -64,7 +64,7 @@ cd gflab
 | `POSTGRES_DB` | PostgreSQL DB명 (예: insighthub) |
 | `VITE_API_URL` | 프론트엔드 API URL (같은 오리진이면 **시크릿을 만들지 않음** – 빈 값 처리됨) |
 | `BACKEND_SECRET_KEY` | JWT/세션용 시크릿 키 |
-| `BACKEND_FRONTEND_URL` | 프론트엔드 URL (예: https://your-domain.com) |
+| `BACKEND_FRONTEND_URL` | 프론트엔드 URL. IP/도메인 둘 다 쓰면 쉼표로 구분 (예: `https://your-domain.com,http://3.34.123.45`) |
 | `BACKEND_GOOGLE_CLIENT_ID` | Google OAuth Client ID |
 | `BACKEND_GOOGLE_CLIENT_SECRET` | Google OAuth Client Secret |
 | `BACKEND_GOOGLE_REDIRECT_URI` | OAuth 콜백 URL (예: https://your-domain.com/auth/callback) |
