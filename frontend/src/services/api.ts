@@ -1,6 +1,7 @@
 import axios from 'axios'
+import { getApiBase } from '../utils/apiBase'
 
-const API_URL = import.meta.env.VITE_API_URL === '' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:8000')
+const API_URL = getApiBase()
 
 // Axios 인스턴스 생성
 const apiClient = axios.create({

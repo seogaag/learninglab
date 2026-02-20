@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { publicApi, Banner } from '../services/api'
+import { getApiBase } from '../utils/apiBase'
 import './Home.css'
 
 interface WorkingTogetherProject {
@@ -153,7 +154,7 @@ const Home: React.FC = () => {
   }
 
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+  const API_URL = getApiBase()
   const getImageUrl = (url: string): string => {
     if (!url) return ''
     if (url.startsWith('http://') || url.startsWith('https://')) {

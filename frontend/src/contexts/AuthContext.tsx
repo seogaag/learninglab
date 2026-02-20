@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import axios from 'axios'
+import { getApiBase } from '../utils/apiBase'
 
 interface User {
   id: number
@@ -61,7 +62,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [])
 
   const fetchUser = async (authToken: string) => {
-    const apiBase = import.meta.env.VITE_API_URL === '' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:8000')
+    const apiBase = getApiBase()
     try {
       const response = await axios.get(`${apiBase}/auth/me`, {
         params: { token: authToken }
@@ -88,8 +89,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }
 
   const login = () => {
-    // Google OAuth 로그인 시작 (배포 환경: VITE_API_URL 비어있으면 같은 오리진 사용)
-    const apiBase = import.meta.env.VITE_API_URL === '' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:8000')
+    const apiBase = getApiBase()
     const email = user?.email || localStorage.getItem('user_email')
     const loginUrl = email
       ? `${apiBase}/auth/login?email=${encodeURIComponent(email)}`

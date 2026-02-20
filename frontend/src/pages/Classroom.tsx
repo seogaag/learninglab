@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { classroomApi, calendarApi, Course, Coursework, CalendarEvent } from '../services/api'
+import { getApiBase } from '../utils/apiBase'
 import CalendarView from './CalendarView'
 import './Classroom.css'
 
@@ -436,7 +437,7 @@ const Classroom: React.FC = () => {
                       const status = getStatusFromCourseState(course.courseState)
                       const getImageUrl = (url?: string): string => {
                         if (!url) return ''
-                        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+                        const apiUrl = getApiBase()
                         // 이미 절대 URL인 경우 그대로 반환
                         if (url.startsWith('http://') || url.startsWith('https://')) {
                           console.log(`[Image URL] Using absolute URL: ${url}`)

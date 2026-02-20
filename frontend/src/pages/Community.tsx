@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { communityApi, Post, Comment, Tag } from '../services/api'
+import { getApiBase } from '../utils/apiBase'
 import './Community.css'
 
 type BoardType = 'notice' | 'forum' | 'request' | 'all'
@@ -663,7 +664,7 @@ const Community: React.FC = () => {
                   <div className="post-image-container">
                     <img 
                       src={selectedPost.image_url.startsWith('/admin/upload/image/') 
-                        ? `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${selectedPost.image_url}`
+                        ? `${getApiBase()}${selectedPost.image_url}`
                         : selectedPost.image_url} 
                       alt="Post attachment"
                       className="post-image"

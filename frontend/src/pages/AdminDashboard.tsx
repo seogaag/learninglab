@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { adminBannerApi, adminCourseApi, adminUploadApi, Banner, WorkspaceCourse } from '../services/adminApi'
 import { communityApi, Post } from '../services/api'
+import { getApiBase } from '../utils/apiBase'
 import './AdminDashboard.css'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_URL = getApiBase()
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate()

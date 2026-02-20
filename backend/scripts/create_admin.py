@@ -48,11 +48,28 @@ def create_admin(username: str, password: str, email: str = None, name: str = No
 if __name__ == "__main__":
     if len(sys.argv) < 3:
         print("Usage: python create_admin.py <username> <password> [email] [name]")
+        print("       python create_admin.py <username> <password> --reset  (reset password if exists)")
         sys.exit(1)
     
     username = sys.argv[1]
     password = sys.argv[2]
-    email = sys.argv[3] if len(sys.argv) > 3 else None
-    name = sys.argv[4] if len(sys.argv) > 4 else None
-    
-    create_admin(username, password, email, name)
+    reset_mode = len(sys.argv) > 3 and sys.argv[3] == "--reset"
+    if reset_mode:
+        db = SessionLocal()
+        try:
+            admin = db.query(Admin).filter(Admin.username == username).first()
+            if not admin:
+                print(f"Admin '{username}' not found.")
+            else:
+                admin.password_hash = Admin.hash_password(password)
+                db.commit()
+                print(f"Password reset successfully for '{username}'.")
+        except Exception as e:
+            db.rollback()
+            print(f"Error: {e}")
+        finally:
+            db.close()
+    else:
+        email = sys.argv[3] if len(sys.argv) > 3 else None
+        name = sys.argv[4] if len(sys.argv) > 4 else None
+        create_admin(username, password, email, name)

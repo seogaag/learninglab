@@ -1,7 +1,7 @@
 import axios from 'axios'
+import { getApiBase } from '../utils/apiBase'
 
-// 배포(same origin)시 빈 문자열, 로컬은 localhost:8000
-const API_URL = import.meta.env.VITE_API_URL === '' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:8000')
+const API_URL = getApiBase()
 
 export interface AdminLoginRequest {
   username: string
