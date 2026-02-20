@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 
 const AuthCallback: React.FC = () => {
   const navigate = useNavigate()
-  const { setToken, isLoading } = useAuth()
+  const { setToken, user, isLoading } = useAuth()
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -12,11 +12,18 @@ const AuthCallback: React.FC = () => {
     
     if (token) {
       setToken(token)
-      navigate('/')
     } else {
       navigate('/')
     }
   }, [setToken, navigate])
+
+  // token이 있을 때: fetch 완료(isLoading false) 후 홈으로 이동
+  useEffect(() => {
+    const token = new URLSearchParams(window.location.search).get('token')
+    if (!token) return
+    if (isLoading) return
+    navigate('/', { replace: true })
+  }, [user, isLoading, navigate])
 
   if (isLoading) {
     return (

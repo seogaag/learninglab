@@ -62,6 +62,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [])
 
   const fetchUser = async (authToken: string) => {
+    setIsLoading(true)
     const apiBase = getApiBase()
     try {
       const response = await axios.get(`${apiBase}/auth/me`, {

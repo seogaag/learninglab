@@ -291,9 +291,8 @@ docker-compose up --build -d
 
 ### 5. 관리자 계정 생성 (최초 1회)
 ```bash
-docker exec insighthub_backend python scripts/create_admin_seoag68.py
-```
-- 다른 아이디/비밀번호가 필요하면 `scripts/create_admin.py` 인자로 지정해 실행합니다.
+docker exec insighthub_backend python scripts/create_admin.py 아이디 비밀번호
+``
 
 ### 6. 업로드 디렉터리
 - 백엔드가 이미지를 저장하는 `uploads` 디렉터리가 호스트에 없으면 생성해 두거나, `docker-compose.yml`의 volume 경로를 해당 환경에 맞게 수정합니다.
