@@ -100,6 +100,17 @@ async def get_google_classroom_courses(access_token: str) -> List[Dict[str, Any]
                 merge(batch)
                 if not page_token:
                     break
+
+            # 3) fallback: filter 없이 조회 (학생/교사 모두 포함될 수 있음)
+            if not courses:
+                print(f"[GOOGLE_API] No courses with studentId/teacherId, trying without filter...")
+                page_token = None
+                for _ in range(10):
+                    batch, page_token = await fetch_page({}, page_token)
+                    merge(batch)
+                    if not page_token:
+                        break
+
             print(f"[GOOGLE_API] Total (students+teachers): {len(courses)}")
             for c in courses[:3]:
                 print(f"[GOOGLE_API] Course: {c.get('name', 'N/A')} (ID: {c.get('id')}, State: {c.get('courseState')})")

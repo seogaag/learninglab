@@ -74,12 +74,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (response.data?.email) {
         localStorage.setItem('user_email', response.data.email)
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch user:', error)
       setUser(null)
-      localStorage.removeItem('auth_token')
-      localStorage.removeItem('user_email')
-      setTokenState(null)
+      const status = error?.response?.status
+      const detail = (error?.response?.data?.detail || '').toString().toLowerCase()
+      const is401 = status === 401 || detail.includes('invalid token')
+      if (is401) {
+        localStorage.removeItem('auth_token')
+        localStorage.removeItem('user_email')
+        setTokenState(null)
+      }
     } finally {
       setIsLoading(false)
     }

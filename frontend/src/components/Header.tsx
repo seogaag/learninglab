@@ -6,7 +6,7 @@ import './Header.css'
 const Header: React.FC = () => {
   const [showDropdown, setShowDropdown] = useState(false)
   const location = useLocation()
-  const { user, isLoading, login, logout } = useAuth()
+  const { user, token, isLoading, login, logout } = useAuth()
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const handleLogout = () => {
@@ -71,23 +71,23 @@ const Header: React.FC = () => {
         <div className="header-right">
           {isLoading ? (
             <div className="loading-text">Loading...</div>
-          ) : user ? (
+          ) : user || token ? (
             <div className="user-profile" ref={dropdownRef}>
               <div onClick={() => setShowDropdown(!showDropdown)} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
                 <img 
-                  src={user.picture || 'https://via.placeholder.com/40'} 
-                  alt={user.name} 
+                  src={user?.picture || 'https://via.placeholder.com/40'} 
+                  alt={user?.name || 'Account'} 
                   className="profile-img"
                 />
-                <span className="profile-name">{user.name}</span>
+                <span className="profile-name">{user?.name || 'Account'}</span>
                 <span className="dropdown-arrow">▼</span>
               </div>
               {showDropdown && (
                 <div className="dropdown-menu">
                   <div className="dropdown-item">
                     <div className="dropdown-user-info">
-                      <div className="dropdown-user-name">{user.name}</div>
-                      <div className="dropdown-user-email">{user.email}</div>
+                      <div className="dropdown-user-name">{user?.name || 'Account'}</div>
+                      <div className="dropdown-user-email">{user?.email || ''}</div>
                     </div>
                   </div>
                   <div className="dropdown-divider"></div>

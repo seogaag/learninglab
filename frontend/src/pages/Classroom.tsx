@@ -270,6 +270,15 @@ const Classroom: React.FC = () => {
                 >
                   Sign In
                 </button>
+                <a 
+                  href="https://classroom.google.com/u/0/h"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="classroom-link-button classroom-link-button-primary"
+                  style={{ marginTop: '1rem', display: 'inline-block' }}
+                >
+                  Open Google Classroom
+                </a>
               </div>
             </div>
           ) : activeTab === 'my' ? (
@@ -277,30 +286,37 @@ const Classroom: React.FC = () => {
               {loading ? (
                 <div className="loading-text">Loading courses...</div>
               ) : error === 'refresh_token_needed' ? (
-                <div className="error-message">
-                  <p>Google account re-authentication required.</p>
-                  <p style={{ fontSize: '0.9rem', marginTop: '0.5rem', color: '#685A55' }}>
-                    Please sign in again to load Google Classroom data.
-                  </p>
-                  <button 
-                    className="login-prompt-button"
-                    onClick={login}
-                  >
-                    Sign In Again
-                  </button>
+                <div className="no-courses-container">
+                  <div className="no-courses-message">
+                    <h3>Unable to load courses</h3>
+                    <p>Click the button below to open Google Classroom directly.</p>
+                    <p style={{ fontSize: '0.9rem', color: '#685A55', marginTop: '0.5rem' }}>
+                      To sync courses here, sign out and sign in again.
+                    </p>
+                    <a 
+                      href="https://classroom.google.com/u/0/h"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="classroom-link-button classroom-link-button-primary"
+                    >
+                      Open Google Classroom
+                    </a>
+                  </div>
                 </div>
               ) : error ? (
-                <div className="error-message">
-                  <p>{error}</p>
-                  <a 
-                    href="https://classroom.google.com/u/0/h"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="classroom-link-button"
-                    style={{ marginTop: '1rem', display: 'inline-block' }}
-                  >
-                    Open Google Classroom directly
-                  </a>
+                <div className="no-courses-container">
+                  <div className="no-courses-message">
+                    <h3>Unable to load courses</h3>
+                    <p>{error}</p>
+                    <a 
+                      href="https://classroom.google.com/u/0/h"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="classroom-link-button classroom-link-button-primary"
+                    >
+                      Open Google Classroom
+                    </a>
+                  </div>
                 </div>
               ) : !loading && myCourses.length === 0 ? (
                 <div className="no-courses-container">

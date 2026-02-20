@@ -217,6 +217,15 @@ const Hub: React.FC = () => {
                   Please sign out and sign in again with Google to reconnect your account.
                 </p>
               )}
+              <a
+                href={folderLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="drive-link-button"
+                style={{ marginTop: '1rem', display: 'inline-block' }}
+              >
+                Open in Google Drive →
+              </a>
             </div>
           )}
           {!loading && !error && data && (
