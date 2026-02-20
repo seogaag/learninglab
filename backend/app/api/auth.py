@@ -359,8 +359,10 @@ async def callback(
         print(f"[AUTH] JWT token created successfully")
         
         # 프론트엔드로 리다이렉트 (토큰 포함)
+        # /auth/callback 대신 /?token= 사용: nginx가 /auth/* 를 백엔드로 보내서
+        # /auth/callback?token= 이 다시 백엔드에 도달해 토큰이 유실되는 문제 방지
         frontend_base = settings.FRONTEND_URL.rstrip("/")
-        frontend_url = f"{frontend_base}/auth/callback?token={access_token}"
+        frontend_url = f"{frontend_base}/?token={access_token}"
         print(f"[AUTH] Redirecting to frontend...")
         return RedirectResponse(url=frontend_url)
         

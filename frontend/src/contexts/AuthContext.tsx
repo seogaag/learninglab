@@ -50,12 +50,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [])
 
-  // URL에서 토큰 확인 (OAuth 콜백) - 토큰 제거는 AuthCallback에서 navigate 시 처리
+  // URL에서 토큰 확인 (OAuth 콜백 - 백엔드가 /?token= 으로 리다이렉트)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
     const tokenFromUrl = urlParams.get('token')
     if (tokenFromUrl) {
       setToken(tokenFromUrl)
+      // URL에서 token 제거 (주소창 정리, 민감정보 노출 방지)
+      const path = window.location.pathname || '/'
+      window.history.replaceState({}, '', path)
     }
   }, [])
 
