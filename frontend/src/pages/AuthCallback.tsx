@@ -13,11 +13,11 @@ const AuthCallback: React.FC = () => {
     if (token) {
       setToken(token)
     } else {
-      navigate('/')
+      navigate('/', { replace: true })
     }
   }, [setToken, navigate])
 
-  // token이 있을 때: fetch 완료(isLoading false) 후 홈으로 이동
+  // OAuth 콜백: token이 있고 fetch 완료되면 홈으로 이동
   useEffect(() => {
     const token = new URLSearchParams(window.location.search).get('token')
     if (!token) return

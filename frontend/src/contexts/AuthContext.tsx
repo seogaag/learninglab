@@ -50,14 +50,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [])
 
-  // URL에서 토큰 확인 (OAuth 콜백)
+  // URL에서 토큰 확인 (OAuth 콜백) - 토큰 제거는 AuthCallback에서 navigate 시 처리
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
     const tokenFromUrl = urlParams.get('token')
     if (tokenFromUrl) {
       setToken(tokenFromUrl)
-      // URL에서 토큰 제거
-      window.history.replaceState({}, '', window.location.pathname)
     }
   }, [])
 
@@ -75,6 +73,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     } catch (error) {
       console.error('Failed to fetch user:', error)
+      setUser(null)
       localStorage.removeItem('auth_token')
       localStorage.removeItem('user_email')
       setTokenState(null)
