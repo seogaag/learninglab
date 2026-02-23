@@ -60,7 +60,7 @@ const MiniCalendar: React.FC<MiniCalendarProps> = ({ eventDates }) => {
       </div>
       <div className="mini-calendar-actions">
         <button type="button" className="mini-calendar-today-btn" onClick={goToToday}>
-          오늘로 가기
+          Today
         </button>
         <a
           href={GPC_CALENDAR_URL}

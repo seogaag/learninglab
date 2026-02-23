@@ -245,15 +245,6 @@ const Classroom: React.FC = () => {
                 >
                   Sign In
                 </button>
-                <a 
-                  href="https://classroom.google.com/u/0/h"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="classroom-link-button classroom-link-button-primary"
-                  style={{ marginTop: '1rem', display: 'inline-block' }}
-                >
-                  Open Google Classroom
-                </a>
               </div>
             </div>
           ) : activeTab === 'my' ? (
