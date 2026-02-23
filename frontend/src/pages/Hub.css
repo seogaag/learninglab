@@ -362,3 +362,24 @@
   line-height: 1.6;
   margin-bottom: 0.5rem;
 }
+
+.hub-drive-fab {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  padding: 0.75rem 1.5rem;
+  background: #89A230;
+  color: white;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.hub-drive-fab:hover {
+  background: #718B29;
+  color: white;
+  transform: translateY(-2px);
+}

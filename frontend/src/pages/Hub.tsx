@@ -23,7 +23,7 @@ interface FolderData {
 }
 
 const Hub: React.FC = () => {
-  const { user, token, isLoading: authLoading, login } = useAuth()
+  const { user, token, isLoading: authLoading, login, loginWithConsent } = useAuth()
   const [folderId, setFolderId] = useState(DEFAULT_FOLDER_ID)
   const [folderStack, setFolderStack] = useState<{ id: string; name: string }[]>([])
   const [data, setData] = useState<FolderData | null>(null)
@@ -203,11 +203,20 @@ const Hub: React.FC = () => {
           {error && !showLoginPrompt && (
             <div className="drive-empty" style={{ color: '#c0392b' }}>
               {error}
-              {error?.includes('refresh token') && (
+              {(error?.includes('refresh token') || error?.includes('403') || error?.includes('Forbidden') || error?.includes('Drive access')) && (
                 <p style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
-                  Please sign out and sign in again with Google to reconnect your account.
+                  Drive 권한이 필요합니다. 아래 버튼으로 다시 로그인해 권한을 허용해 주세요.
                 </p>
               )}
+              {(error?.includes('refresh token') || error?.includes('403') || error?.includes('Forbidden') || error?.includes('Drive access')) ? (
+                <button
+                  className="drive-link-button"
+                  style={{ marginTop: '1rem', display: 'inline-block', marginRight: '0.5rem' }}
+                  onClick={loginWithConsent}
+                >
+                  권한 다시 부여 (재로그인)
+                </button>
+              ) : null}
               <a
                 href={folderLink}
                 target="_blank"
@@ -263,6 +272,15 @@ const Hub: React.FC = () => {
           )}
         </div>
       </div>
+      <a
+        href={folderLink}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="hub-drive-fab"
+        title="Open in Google Drive"
+      >
+        Google Drive
+      </a>
     </div>
   )
 }

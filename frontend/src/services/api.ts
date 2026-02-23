@@ -168,6 +168,7 @@ export interface Post {
   is_pinned: boolean
   view_count: number
   image_url?: string
+  image_urls?: string[]
   like_count: number
   is_liked: boolean
   is_resolved: boolean
@@ -230,12 +231,24 @@ export const communityApi = {
     return response.data
   },
   
+  uploadImage: async (file: File, token?: string): Promise<{ url: string }> => {
+    const t = token || getAuthToken()
+    const formData = new FormData()
+    formData.append('file', file)
+    const response = await apiClient.post('/community/upload-image', formData, {
+      params: { token: t },
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    return response.data
+  },
+
   createPost: async (post: {
     post_type: 'notice' | 'forum' | 'request'
     title: string
     content: string
     tags?: string[]
     mentions?: string[]
+    image_urls?: string[]
   }, adminToken?: string): Promise<Post> => {
     // Notice인 경우 관리자 토큰 사용, 그 외에는 일반 사용자 토큰 사용
     const token = adminToken || getAuthToken()
@@ -250,6 +263,7 @@ export const communityApi = {
     content?: string
     tags?: string[]
     mentions?: string[]
+    image_urls?: string[]
     is_pinned?: boolean
     is_resolved?: boolean
   }, adminToken?: string): Promise<Post> => {

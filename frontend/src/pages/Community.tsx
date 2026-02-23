@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { communityApi, Post, Comment, Tag } from '../services/api'
 import { getApiBase } from '../utils/apiBase'
 import './Community.css'
+
+const MAX_IMAGES = 3
 
 type BoardType = 'notice' | 'forum' | 'request' | 'all'
 
@@ -660,15 +662,19 @@ const Community: React.FC = () => {
                     </div>
                   )}
                 </div>
-                {selectedPost.image_url && (
-                  <div className="post-image-container">
-                    <img 
-                      src={selectedPost.image_url.startsWith('/admin/upload/image/') 
-                        ? `${getApiBase()}${selectedPost.image_url}`
-                        : selectedPost.image_url} 
-                      alt="Post attachment"
-                      className="post-image"
-                    />
+                {((selectedPost.image_urls && selectedPost.image_urls.length > 0) || selectedPost.image_url) && (
+                  <div className="post-images-container">
+                    {(selectedPost.image_urls || (selectedPost.image_url ? [selectedPost.image_url] : [])).slice(0, MAX_IMAGES).map((url, idx) => (
+                      <div key={idx} className="post-image-container">
+                        <img 
+                          src={(url.startsWith('/admin/upload/image/') || url.startsWith('/community/image/'))
+                            ? `${getApiBase()}${url}`
+                            : url} 
+                          alt={`Post attachment ${idx + 1}`}
+                          className="post-image"
+                        />
+                      </div>
+                    ))}
                   </div>
                 )}
                 <div
@@ -929,6 +935,10 @@ const PostForm: React.FC<{
   useAuth()
   const [title, setTitle] = useState(editingPost?.title || '')
   const [content, setContent] = useState(editingPost?.content || '')
+  const [imageUrls, setImageUrls] = useState<string[]>(
+    editingPost?.image_urls?.slice(0, MAX_IMAGES) || (editingPost?.image_url ? [editingPost.image_url] : [])
+  )
+  const [uploadingImage, setUploadingImage] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [adminPassword, setAdminPassword] = useState('')
   const [showPasswordInput, setShowPasswordInput] = useState(false)
@@ -944,11 +954,41 @@ const PostForm: React.FC<{
     if (editingPost) {
       setTitle(editingPost.title)
       setContent(editingPost.content)
+      setImageUrls(
+        editingPost.image_urls?.slice(0, MAX_IMAGES) || (editingPost.image_url ? [editingPost.image_url] : [])
+      )
     } else {
       setTitle('')
       setContent('')
+      setImageUrls([])
     }
   }, [editingPost])
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files?.length || imageUrls.length >= MAX_IMAGES) return
+    const remaining = MAX_IMAGES - imageUrls.length
+    const toAdd = Math.min(remaining, files.length)
+    setUploadingImage(true)
+    try {
+      for (let i = 0; i < toAdd; i++) {
+        const file = files[i]
+        if (!file.type.startsWith('image/')) continue
+        const { url } = await communityApi.uploadImage(file)
+        setImageUrls(prev => [...prev, url].slice(0, MAX_IMAGES))
+      }
+    } catch (err) {
+      console.error('Image upload failed:', err)
+      alert('Failed to upload image.')
+    } finally {
+      setUploadingImage(false)
+      e.target.value = ''
+    }
+  }
+
+  const removeImage = (idx: number) => {
+    setImageUrls(prev => prev.filter((_, i) => i !== idx))
+  }
 
   const loadMentionUsers = async (search: string) => {
     setLoadingUsers(true)
@@ -1051,7 +1091,8 @@ const PostForm: React.FC<{
           title: title.trim(),
           content: content.trim(),
           tags: tags.length > 0 ? tags : undefined,
-          mentions: mentions.length > 0 ? mentions : undefined
+          mentions: mentions.length > 0 ? mentions : undefined,
+          image_urls: imageUrls.length > 0 ? imageUrls : undefined
         })
       } else {
         // 생성 모드
@@ -1060,7 +1101,8 @@ const PostForm: React.FC<{
           title: title.trim(),
           content: content.trim(),
           tags: tags.length > 0 ? tags : undefined,
-          mentions: mentions.length > 0 ? mentions : undefined
+          mentions: mentions.length > 0 ? mentions : undefined,
+          image_urls: imageUrls.length > 0 ? imageUrls : undefined
         }, adminToken)
       }
       onSuccess()
@@ -1075,6 +1117,11 @@ const PostForm: React.FC<{
   return (
     <form className="post-form" onSubmit={handleSubmit}>
       <h3>{editingPost ? 'Edit Post' : `New Post (${boardType.toUpperCase()})`}</h3>
+      <div className="form-group form-notice-hub">
+        <p className="hub-notice-text">
+          파일(이미지 외)은 <Link to="/hub">Hub</Link>에 업로드해 주세요.
+        </p>
+      </div>
       <div className="form-group">
         <label>Title *</label>
         <input
@@ -1246,6 +1293,37 @@ const PostForm: React.FC<{
                 {mentionSearch ? `No users found for "${mentionSearch}"` : 'No users found'}
               </div>
             )}
+          </div>
+        )}
+      </div>
+      <div className="form-group">
+        <label>Images (max {MAX_IMAGES})</label>
+        {imageUrls.length < MAX_IMAGES && (
+          <div className="image-upload-row">
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleImageUpload}
+              disabled={uploadingImage}
+              className="image-upload-input"
+            />
+            <span className="image-upload-hint">{uploadingImage ? 'Uploading...' : `Add image (${imageUrls.length}/${MAX_IMAGES})`}</span>
+          </div>
+        )}
+        {imageUrls.length > 0 && (
+          <div className="post-form-images">
+            {imageUrls.map((url, idx) => (
+              <div key={idx} className="post-form-image-item">
+                <img
+                  src={(url.startsWith('/admin/upload/image/') || url.startsWith('/community/image/')) ? `${getApiBase()}${url}` : url}
+                  alt={`Preview ${idx + 1}`}
+                />
+                <button type="button" className="remove-image-btn" onClick={() => removeImage(idx)} title="Remove">
+                  ×
+                </button>
+              </div>
+            ))}
           </div>
         )}
       </div>

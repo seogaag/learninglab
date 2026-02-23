@@ -61,7 +61,7 @@ const CalendarSidebar: React.FC = () => {
 }
 
 const Classroom: React.FC = () => {
-  const { user, token, login } = useAuth()
+  const { user, token, login, loginWithConsent } = useAuth()
   const [allCourses, setAllCourses] = useState<Course[]>([])
   const [myCourses, setMyCourses] = useState<Course[]>([])
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
@@ -285,19 +285,23 @@ const Classroom: React.FC = () => {
             <div className="my-courses-container">
               {loading ? (
                 <div className="loading-text">Loading courses...</div>
-              ) : error === 'refresh_token_needed' ? (
+              ) :               error === 'refresh_token_needed' ? (
                 <div className="no-courses-container">
                   <div className="no-courses-message">
                     <h3>Unable to load courses</h3>
-                    <p>Click the button below to open Google Classroom directly.</p>
-                    <p style={{ fontSize: '0.9rem', color: '#685A55', marginTop: '0.5rem' }}>
-                      To sync courses here, sign out and sign in again.
-                    </p>
+                    <p>Classroom & Drive 권한이 필요합니다. 아래 버튼을 눌러 다시 로그인하고 권한을 허용해 주세요.</p>
+                    <button 
+                      className="classroom-link-button classroom-link-button-primary"
+                      onClick={loginWithConsent}
+                      style={{ marginRight: '0.5rem', marginBottom: '0.5rem' }}
+                    >
+                      권한 다시 부여 (재로그인)
+                    </button>
                     <a 
                       href="https://classroom.google.com/u/0/h"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="classroom-link-button classroom-link-button-primary"
+                      className="classroom-link-button"
                     >
                       Open Google Classroom
                     </a>
@@ -308,11 +312,18 @@ const Classroom: React.FC = () => {
                   <div className="no-courses-message">
                     <h3>Unable to load courses</h3>
                     <p>{error}</p>
+                    <button 
+                      className="classroom-link-button classroom-link-button-primary"
+                      onClick={loginWithConsent}
+                      style={{ marginRight: '0.5rem', marginBottom: '0.5rem' }}
+                    >
+                      권한 다시 부여 (재로그인)
+                    </button>
                     <a 
                       href="https://classroom.google.com/u/0/h"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="classroom-link-button classroom-link-button-primary"
+                      className="classroom-link-button"
                     >
                       Open Google Classroom
                     </a>

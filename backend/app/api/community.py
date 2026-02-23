@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, func, desc
 from app.db.database import get_db
@@ -54,6 +54,82 @@ def extract_tags(text: str) -> List[str]:
     pattern = r'#(\w+)'
     matches = re.findall(pattern, text)
     return [tag.lower() for tag in set(matches)]
+
+
+def _parse_image_urls(val: Optional[str]) -> List[str]:
+    """image_url 필드를 파싱하여 URL 리스트 반환 (최대 3개)"""
+    if not val or not val.strip():
+        return []
+    s = val.strip()
+    if s.startswith('['):
+        try:
+            import json
+            urls = json.loads(s)
+            if isinstance(urls, list):
+                return [str(u) for u in urls[:3] if u]
+        except Exception:
+            pass
+    return [s] if s else []
+
+
+def _serialize_image_urls(urls: List[str]) -> Optional[str]:
+    """URL 리스트를 image_url 필드에 저장할 문자열로 변환"""
+    urls = [u for u in urls[:3] if u and isinstance(u, str)]
+    if not urls:
+        return None
+    if len(urls) == 1:
+        return urls[0]
+    import json
+    return json.dumps(urls)
+
+
+@router.post("/upload-image")
+async def upload_community_image(
+    file: UploadFile = File(...),
+    token: str = Query(..., description="User authentication token"),
+    db: Session = Depends(get_db)
+):
+    """게시글용 이미지 업로드 (로그인 사용자, 최대 3개/글) - community 전용 폴더 사용"""
+    payload = verify_token(token)
+    if not payload:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    import shutil
+    import time
+    from pathlib import Path
+    from fastapi.responses import FileResponse
+    UPLOAD_DIR = Path("/app/uploads/community")
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    ALLOWED = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
+    MAX_MB = 5
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No file provided")
+    ext = Path(file.filename).suffix.lower()
+    if ext not in ALLOWED:
+        raise HTTPException(status_code=400, detail=f"Allowed: {', '.join(ALLOWED)}")
+    content = await file.read()
+    if len(content) > MAX_MB * 1024 * 1024:
+        raise HTTPException(status_code=413, detail=f"Max {MAX_MB}MB")
+    await file.seek(0)
+    ts = int(time.time() * 1000)
+    safe = f"{ts}_{file.filename}"
+    path = UPLOAD_DIR / safe
+    with open(path, "wb") as f:
+        shutil.copyfileobj(file.file, f)
+    url = f"/community/image/{safe}"
+    return {"url": url, "filename": safe}
+
+
+@router.get("/image/{filename:path}")
+async def get_community_image(filename: str):
+    """Community 게시글용 이미지 조회"""
+    from urllib.parse import unquote
+    from fastapi.responses import FileResponse
+    decoded = unquote(filename)
+    path = Path("/app/uploads/community") / decoded
+    if not path.exists() or not path.is_file():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+    return FileResponse(path)
+
 
 @router.get("/posts", response_model=PostListResponse)
 async def get_posts(
@@ -146,6 +222,7 @@ async def get_posts(
                 author_name = "Global Partnership Center"
             
             try:
+                img_urls = _parse_image_urls(post.image_url)
                 post_dict = {
                     "id": post.id,
                     "post_type": post.post_type,
@@ -155,7 +232,8 @@ async def get_posts(
                     "author_name": author_name,
                     "is_pinned": post.is_pinned,
                     "view_count": post.view_count,
-                    "image_url": post.image_url,
+                    "image_url": img_urls[0] if img_urls else post.image_url,
+                    "image_urls": img_urls if img_urls else None,
                     "like_count": like_count,
                     "is_liked": is_liked,
                     "is_resolved": getattr(post, 'is_resolved', False),
@@ -348,6 +426,12 @@ async def create_post(
             # 관리자가 작성한 Notice는 항상 'Global Partnership Center'로 표시
             author_name = "Global Partnership Center"
     
+    # 이미지 URL 처리 (최대 3개)
+    urls = (post.image_urls or [])[:3]
+    if post.image_url and not urls:
+        urls = [post.image_url]
+    stored_url = _serialize_image_urls(urls) if urls else None
+
     # 게시글 생성
     db_post = Post(
         post_type=post.post_type,
@@ -355,7 +439,8 @@ async def create_post(
         content=post.content,
         author_id=author_id,
         author_email=author_email,
-        author_name=author_name
+        author_name=author_name,
+        image_url=stored_url
     )
     db.add(db_post)
     db.flush()
@@ -410,6 +495,7 @@ async def create_post(
     tags = [{"id": pt.tag.id, "name": pt.tag.name} for pt in db_post.tags]
     mentions = [{"mentioned_email": pm.mentioned_email, "mentioned_name": pm.mentioned_name} for pm in db_post.mentions]
     
+    img_urls = _parse_image_urls(db_post.image_url)
     post_dict = {
         "id": db_post.id,
         "post_type": db_post.post_type,
@@ -419,7 +505,8 @@ async def create_post(
         "author_name": db_post.author_name,
         "is_pinned": db_post.is_pinned,
         "view_count": db_post.view_count,
-        "image_url": db_post.image_url,
+        "image_url": img_urls[0] if img_urls else db_post.image_url,
+        "image_urls": img_urls if img_urls else None,
         "like_count": db_post.like_count or 0,
         "is_liked": False,
         "created_at": db_post.created_at,
@@ -493,6 +580,8 @@ async def update_post(
         db_post.title = post.title
     if post.content is not None:
         db_post.content = post.content
+    if post.image_urls is not None:
+        db_post.image_url = _serialize_image_urls(post.image_urls[:3]) if post.image_urls else None
     if post.is_pinned is not None:
         db_post.is_pinned = post.is_pinned
     if post.is_resolved is not None:
@@ -574,6 +663,7 @@ async def update_post(
         except:
             pass
     
+    img_urls = _parse_image_urls(db_post.image_url)
     post_dict = {
         "id": db_post.id,
         "post_type": db_post.post_type,
@@ -583,8 +673,9 @@ async def update_post(
         "author_name": db_post.author_name,
         "is_pinned": db_post.is_pinned,
         "view_count": db_post.view_count,
-        "image_url": db_post.image_url,
-            "like_count": like_count,
+        "image_url": img_urls[0] if img_urls else db_post.image_url,
+        "image_urls": img_urls if img_urls else None,
+        "like_count": like_count,
             "is_liked": is_liked,
             "created_at": db_post.created_at,
         "updated_at": db_post.updated_at,
@@ -907,6 +998,7 @@ async def get_popular_posts(
             ).first()
             is_liked = existing_like is not None
         
+        img_urls = _parse_image_urls(post.image_url)
         post_dict = {
             "id": post.id,
             "post_type": post.post_type,
@@ -916,7 +1008,8 @@ async def get_popular_posts(
             "author_name": post.author_name,
             "is_pinned": post.is_pinned,
             "view_count": post.view_count,
-            "image_url": post.image_url,
+            "image_url": img_urls[0] if img_urls else post.image_url,
+            "image_urls": img_urls if img_urls else None,
             "like_count": like_count,
             "is_liked": is_liked,
             "created_at": post.created_at,
@@ -1072,6 +1165,7 @@ async def get_mentioned_posts(
         ).first()
         is_liked = existing_like is not None
         
+        img_urls = _parse_image_urls(post.image_url)
         post_dict = {
             "id": post.id,
             "post_type": post.post_type,
@@ -1081,7 +1175,8 @@ async def get_mentioned_posts(
             "author_name": post.author_name,
             "is_pinned": post.is_pinned,
             "view_count": post.view_count,
-            "image_url": post.image_url,
+            "image_url": img_urls[0] if img_urls else post.image_url,
+            "image_urls": img_urls if img_urls else None,
             "like_count": like_count,
             "is_liked": is_liked,
             "is_resolved": getattr(post, 'is_resolved', False),

@@ -16,13 +16,15 @@ class PostBase(BaseModel):
 class PostCreate(PostBase):
     tags: Optional[List[str]] = []
     mentions: Optional[List[str]] = []  # 이메일 리스트
-    image_url: Optional[str] = None  # 이미지 URL
+    image_url: Optional[str] = None  # 단일 이미지 URL (레거시)
+    image_urls: Optional[List[str]] = None  # 이미지 URL 목록 (최대 3개)
 
 class PostUpdate(BaseModel):
     title: Optional[str] = None
     content: Optional[str] = None
     tags: Optional[List[str]] = None
     mentions: Optional[List[str]] = None
+    image_urls: Optional[List[str]] = None  # 최대 3개
     is_pinned: Optional[bool] = None
     is_resolved: Optional[bool] = None
 
@@ -70,7 +72,8 @@ class PostResponse(BaseModel):
     author_name: Optional[str] = None
     is_pinned: bool
     view_count: int
-    image_url: Optional[str] = None
+    image_url: Optional[str] = None  # 레거시 (첫 이미지)
+    image_urls: Optional[List[str]] = None  # 이미지 목록 (최대 3개)
     like_count: int = 0
     is_liked: bool = False  # 현재 사용자가 좋아요를 눌렀는지
     is_resolved: bool = False  # Request 해결 여부

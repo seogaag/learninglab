@@ -16,6 +16,7 @@ interface AuthContextType {
   token: string | null
   isLoading: boolean
   login: () => void
+  loginWithConsent: () => void
   logout: () => void
   setToken: (token: string) => void
 }
@@ -105,6 +106,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     window.location.href = loginUrl
   }
 
+  const loginWithConsent = () => {
+    const apiBase = getApiBase()
+    const email = user?.email || localStorage.getItem('user_email')
+    const params = new URLSearchParams({ force_consent: 'true' })
+    if (email) params.set('email', email)
+    window.location.href = `${apiBase}/auth/login?${params.toString()}`
+  }
+
   const logout = () => {
     setUser(null)
     setTokenState(null)
@@ -114,7 +123,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, logout, setToken }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, loginWithConsent, logout, setToken }}>
       {children}
     </AuthContext.Provider>
   )

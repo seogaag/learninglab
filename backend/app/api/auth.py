@@ -44,6 +44,7 @@ if settings.GOOGLE_CLIENT_ID and settings.GOOGLE_CLIENT_SECRET:
 async def login(
     request: Request, 
     email: Optional[str] = Query(None, description="User email to check for existing refresh token"),
+    force_consent: bool = Query(False, description="Force consent screen to re-grant Classroom/Drive scopes"),
     db: Session = Depends(get_db)
 ):
     """Google OAuth 로그인 시작"""
@@ -99,13 +100,15 @@ async def login(
             print(f"[AUTH] Error checking user refresh_token: {e}")
     
     # prompt 파라미터 설정
+    # - force_consent=true: 권한 재요청 (Classroom/Drive 403 시 새 scope로 refresh_token 갱신)
     # - refresh_token이 있으면: prompt 제거 (자동 로그인)
-    # - refresh_token이 없으면: select_account만 사용 (Google이 자동으로 처리: 처음이거나 refresh_token이 만료된 경우에만 동의 화면 표시)
-    #   참고: prompt=consent를 사용하면 매번 동의 화면이 표시되므로 사용하지 않음
-    if has_refresh_token:
+    # - refresh_token이 없으면: select_account만 사용
+    if force_consent:
+        prompt_param = "prompt=consent&"
+        print(f"[AUTH] force_consent=true, will show consent screen for Classroom/Drive scopes")
+    elif has_refresh_token:
         prompt_param = ""
     else:
-        # select_account만 사용: Google이 자동으로 처리 (처음이거나 refresh_token이 만료된 경우에만 동의 화면 표시)
         prompt_param = "prompt=select_account&"
     
     auth_url = (
