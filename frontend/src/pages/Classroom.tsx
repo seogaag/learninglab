@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { classroomApi, calendarApi, Course, Coursework, CalendarEvent } from '../services/api'
+import { classroomApi, calendarApi, Course, CalendarEvent } from '../services/api'
 import { getApiBase } from '../utils/apiBase'
 import CalendarView from './CalendarView'
 import './Classroom.css'
@@ -64,8 +64,6 @@ const Classroom: React.FC = () => {
   const { user, token, login, loginWithConsent } = useAuth()
   const [allCourses, setAllCourses] = useState<Course[]>([])
   const [myCourses, setMyCourses] = useState<Course[]>([])
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
-  const [coursework, setCoursework] = useState<Coursework[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'all' | 'my' | 'calendar'>('all')
@@ -365,73 +363,7 @@ const Classroom: React.FC = () => {
               )}
             </div>
           ) : (
-            <>
-              {selectedCourse ? (
-                <div className="course-detail">
-                  <button 
-                    className="back-button"
-                    onClick={() => setSelectedCourse(null)}
-                  >
-                    ← Back to Courses
-                  </button>
-                  <div className="course-header">
-                    <h3 className="course-title">{selectedCourse.name}</h3>
-                    {selectedCourse.section && (
-                      <p className="course-section">Section: {selectedCourse.section}</p>
-                    )}
-                    {selectedCourse.description && (
-                      <p className="course-description">{selectedCourse.description}</p>
-                    )}
-                    {selectedCourse.alternateLink && (
-                      <a 
-                        href={selectedCourse.alternateLink} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="course-btn"
-                      >
-                        Open in Google Classroom
-                      </a>
-                    )}
-                  </div>
-
-                  {loading && coursework.length === 0 ? (
-                    <div className="loading-text">Loading assignments...</div>
-                  ) : (
-                    <div className="course-modules">
-                      <h4 className="modules-title">Assignments</h4>
-                      {coursework.length === 0 ? (
-                        <p className="no-assignments">No assignments found</p>
-                      ) : (
-                        <ul className="modules-list">
-                          {coursework.map((work) => (
-                            <li key={work.id} className="module-item">
-                              <div className="module-content">
-                                <span className="module-name">{work.title}</span>
-                                {work.dueDate && (
-                                  <span className="module-due">
-                                    Due: {work.dueDate.year}-{work.dueDate.month}-{work.dueDate.day}
-                                  </span>
-                                )}
-                              </div>
-                              {work.alternateLink && (
-                                <a 
-                                  href={work.alternateLink} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="module-link"
-                                >
-                                  →
-                                </a>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="course-cards">
+            <div className="course-cards">
                   {loading ? (
                     <div className="loading-text">Loading courses...</div>
                   ) : currentCourses.length === 0 ? (
@@ -529,8 +461,6 @@ const Classroom: React.FC = () => {
                     })
                   )}
                 </div>
-              )}
-            </>
           )}
         </div>
 
