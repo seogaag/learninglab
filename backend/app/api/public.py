@@ -44,30 +44,17 @@ async def get_public_workspace_courses(db: Session = Depends(get_db)):
         WorkspaceCourse.is_active == True
     ).order_by(WorkspaceCourse.order.asc()).all()
     
-    # Course 인터페이스에 맞게 변환
-    from app.core.config import settings
-    import os
-    
-    # API URL 설정 (환경 변수 또는 설정에서 가져오기)
-    api_url = os.getenv('API_URL', 'http://localhost:8000')
-    # 프론트엔드에서 접근할 수 있는 URL 사용
-    if hasattr(settings, 'FRONTEND_URL'):
-        api_url = settings.FRONTEND_URL.replace(':3000', ':8000') if ':3000' in getattr(settings, 'FRONTEND_URL', '') else api_url
-    
     from urllib.parse import quote
     
     result = []
     for course in courses:
         image_url = course.image_url
-        # 상대 경로인 경우 절대 URL로 변환
+        # 상대 경로 반환 (프론트엔드에서 getApiBase()와 조합)
         if image_url and image_url.startswith('/admin/upload/image/'):
-            # 파일명만 URL 인코딩 (한글 파일명 처리)
             path_parts = image_url.split('/')
             filename = path_parts[-1]
             encoded_filename = quote(filename, safe='')
-            encoded_path = '/'.join(path_parts[:-1]) + '/' + encoded_filename
-            image_url = f"{api_url}{encoded_path}"
-            print(f"[PUBLIC API] Converting image URL: {course.image_url} -> {image_url}")
+            image_url = '/'.join(path_parts[:-1]) + '/' + encoded_filename
         
         result.append({
             "id": str(course.id),

@@ -248,7 +248,7 @@ export const communityApi = {
     formData.append('file', file)
     const response = await apiClient.post('/community/upload-image', formData, {
       params: { token: t },
-      headers: { 'Content-Type': 'multipart/form-data' }
+      // FormData 전송 시 Content-Type은 boundary 포함으로 자동 설정됨
     })
     return response.data
   },
