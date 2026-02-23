@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { adminBannerApi, adminCourseApi, adminUploadApi, Banner, WorkspaceCourse } from '../services/adminApi'
 import { communityApi, Post } from '../services/api'
@@ -6,6 +6,82 @@ import { getApiBase } from '../utils/apiBase'
 import './AdminDashboard.css'
 
 const API_URL = getApiBase()
+const MAX_IMAGE_SIZE_MB = 30
+const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp']
+
+// 공용 이미지 업로드 드롭존
+const ImageUploadDropzone: React.FC<{
+  onFileSelect: (file: File) => void
+  uploading: boolean
+  required?: boolean
+}> = ({ onFileSelect, uploading, required }) => {
+  const [isDragging, setIsDragging] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const validateAndEmit = (file: File | null) => {
+    if (!file) return
+    const maxSize = MAX_IMAGE_SIZE_MB * 1024 * 1024
+    if (file.size > maxSize) {
+      alert(`파일 크기는 ${MAX_IMAGE_SIZE_MB}MB를 초과할 수 없습니다.`)
+      return
+    }
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      alert('PNG, JPEG, JPG, GIF, WebP 형식의 이미지만 업로드 가능합니다.')
+      return
+    }
+    onFileSelect(file)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+    const file = e.dataTransfer.files?.[0]
+    if (file) validateAndEmit(file)
+  }
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    validateAndEmit(e.target.files?.[0] ?? null)
+    e.target.value = ''
+  }
+  const handleClick = () => inputRef.current?.click()
+
+  return (
+    <div
+      className={`image-dropzone ${isDragging ? 'dropzone-active' : ''}`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      onClick={handleClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === 'Enter' && handleClick()}
+    >
+      <input
+        ref={inputRef}
+        type="file"
+        accept={ALLOWED_IMAGE_TYPES.join(',')}
+        onChange={handleChange}
+        disabled={uploading}
+        required={required}
+        style={{ display: 'none' }}
+      />
+      <span className="dropzone-text">
+        {uploading ? '업로드 중...' : '클릭하거나 이미지를 여기에 드래그하여 놓으세요'}
+      </span>
+      <span className="dropzone-hint">PNG, JPEG, JPG, GIF, WebP (최대 {MAX_IMAGE_SIZE_MB}MB)</span>
+    </div>
+  )
+}
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate()
@@ -437,28 +513,11 @@ const BannerForm: React.FC<{
     }
   }, [formData.image_url])
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    // 파일 크기 확인 (10MB)
-    const maxSize = 10 * 1024 * 1024
-    if (file.size > maxSize) {
-      alert('파일 크기는 10MB를 초과할 수 없습니다.')
-      return
-    }
-
-    // 파일 타입 확인
-    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg']
-    if (!allowedTypes.includes(file.type)) {
-      alert('PNG, JPEG, JPG 형식의 이미지만 업로드 가능합니다.')
-      return
-    }
-
+  const handleFileUpload = async (file: File) => {
     setUploading(true)
     try {
       const result = await adminUploadApi.uploadImage(file)
-      setFormData({ ...formData, image_url: result.url })
+      setFormData((prev) => ({ ...prev, image_url: result.url }))
     } catch (err: any) {
       console.error('Error uploading image:', err)
       const errorMessage = err.response?.data?.detail || '이미지 업로드에 실패했습니다.'
@@ -470,6 +529,10 @@ const BannerForm: React.FC<{
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!formData.image_url) {
+      alert('이미지를 업로드해주세요.')
+      return
+    }
     onSubmit(formData)
   }
 
@@ -494,15 +557,10 @@ const BannerForm: React.FC<{
       <div className="form-group">
         <label>이미지 *</label>
         <div className="image-upload-section">
-          <input
-            type="file"
-            accept="image/png,image/jpeg,image/jpg"
-            onChange={handleFileUpload}
-            disabled={uploading}
-            style={{ marginBottom: '0.5rem' }}
-            required={!formData.image_url}
+          <ImageUploadDropzone
+            onFileSelect={handleFileUpload}
+            uploading={uploading}
           />
-          {uploading && <p className="upload-status">업로드 중...</p>}
           {previewUrl && (
             <div className="image-preview">
               <img src={previewUrl} alt="Preview" />
@@ -575,28 +633,11 @@ const CourseForm: React.FC<{
     }
   }, [formData.image_url])
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    // 파일 크기 확인 (10MB)
-    const maxSize = 10 * 1024 * 1024
-    if (file.size > maxSize) {
-      alert('파일 크기는 10MB를 초과할 수 없습니다.')
-      return
-    }
-
-    // 파일 타입 확인
-    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg']
-    if (!allowedTypes.includes(file.type)) {
-      alert('PNG, JPEG, JPG 형식의 이미지만 업로드 가능합니다.')
-      return
-    }
-
+  const handleFileUpload = async (file: File) => {
     setUploading(true)
     try {
       const result = await adminUploadApi.uploadImage(file)
-      setFormData({ ...formData, image_url: result.url })
+      setFormData((prev) => ({ ...prev, image_url: result.url }))
     } catch (err: any) {
       console.error('Error uploading image:', err)
       const errorMessage = err.response?.data?.detail || '이미지 업로드에 실패했습니다.'
@@ -640,14 +681,10 @@ const CourseForm: React.FC<{
       <div className="form-group">
         <label>이미지</label>
         <div className="image-upload-section">
-          <input
-            type="file"
-            accept="image/png,image/jpeg,image/jpg"
-            onChange={handleFileUpload}
-            disabled={uploading}
-            style={{ marginBottom: '0.5rem' }}
+          <ImageUploadDropzone
+            onFileSelect={handleFileUpload}
+            uploading={uploading}
           />
-          {uploading && <p className="upload-status">업로드 중...</p>}
           {previewUrl && (
             <div className="image-preview">
               <img src={previewUrl} alt="Preview" />

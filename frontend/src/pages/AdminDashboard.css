@@ -246,6 +246,39 @@
   gap: 0.5rem;
 }
 
+.image-dropzone {
+  padding: 1.5rem;
+  border: 2px dashed #E9EADE;
+  border-radius: 8px;
+  background: #fafaf9;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.image-dropzone:hover {
+  border-color: #89A230;
+  background: #f5f8ee;
+}
+
+.image-dropzone.dropzone-active {
+  border-color: #89A230;
+  background: #f0f5e6;
+}
+
+.dropzone-text {
+  display: block;
+  color: #57463D;
+  font-size: 0.95rem;
+  margin-bottom: 0.25rem;
+}
+
+.dropzone-hint {
+  display: block;
+  color: #685A55;
+  font-size: 0.8rem;
+}
+
 .image-upload-section input[type="file"] {
   padding: 0.5rem;
   border: 2px solid #E9EADE;

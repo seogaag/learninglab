@@ -194,19 +194,21 @@ const Home: React.FC = () => {
               className="hero-carousel-link"
             >
               <div className="hero-carousel-inner" key={currentBannerIndex}>
-                <div
+                <img
+                  src={getImageUrl(currentBanner.image_url)}
+                  alt={currentBanner.title || 'Banner'}
                   className="hero-carousel-image"
                   key={currentBanner.id}
-                  style={{ backgroundImage: `url(${getImageUrl(currentBanner.image_url)})` }}
                 />
               </div>
             </a>
           ) : (
             <div className="hero-carousel-inner" key={currentBannerIndex}>
-              <div
+              <img
+                src={getImageUrl(currentBanner.image_url)}
+                alt={currentBanner.title || 'Banner'}
                 className="hero-carousel-image"
                 key={currentBanner.id}
-                style={{ backgroundImage: `url(${getImageUrl(currentBanner.image_url)})` }}
               />
             </div>
           )}
@@ -247,16 +249,15 @@ const Home: React.FC = () => {
           )}
         </section>
       ) : (
-        <section className="hero-carousel" aria-label="Main banner carousel" style={{ backgroundColor: 'white', minHeight: '480px' }}>
-          <div className="hero-carousel-inner" style={{ backgroundColor: 'white' }}>
-            <div className="hero-carousel-image" style={{ backgroundColor: 'white' }} />
-          </div>
+        <section className="hero-carousel hero-carousel-empty" aria-label="Main banner carousel">
+          <div className="hero-carousel-inner" />
         </section>
       )}
 
       {/* Pinned Notices (고정 공지) */}
       {pinnedNotices.length > 0 && (
         <section className="home-pinned-notices">
+          <h2 className="section-main-title notices-section-title">Notice</h2>
           <div className="pinned-notices-inner">
             {pinnedNotices.map((notice) => (
               <div

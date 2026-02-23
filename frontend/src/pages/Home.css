@@ -36,9 +36,13 @@
 /* ========== 고정 공지 (배너 밑) ========== */
 .home-pinned-notices {
   width: 100%;
-  padding: 1.5rem 2rem;
+  padding: 4rem 2rem;
   background: #ffffff;
   border-bottom: 1px solid #E9EADE;
+}
+
+.home-pinned-notices .notices-section-title {
+  margin-bottom: 2rem;
 }
 
 .pinned-notices-inner {

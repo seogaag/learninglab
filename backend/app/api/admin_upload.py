@@ -17,7 +17,7 @@ UPLOAD_DIR = Path("/app/uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
 
 ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
-MAX_FILE_SIZE_MB = 10
+MAX_FILE_SIZE_MB = 30
 MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024  # 10MB in bytes
 
 def is_allowed_file(filename: str) -> bool:
