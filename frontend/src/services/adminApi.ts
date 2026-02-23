@@ -129,8 +129,8 @@ export const adminUploadApi = {
     const response = await axios.post(`${API_URL}/admin/upload/image`, formData, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Content-Type': 'multipart/form-data',
       },
+      // FormData 전송 시 Content-Type은 boundary 포함으로 자동 설정됨 (명시 시 파싱 실패 가능)
     })
     return response.data
   },

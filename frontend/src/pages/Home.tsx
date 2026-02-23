@@ -194,21 +194,19 @@ const Home: React.FC = () => {
               className="hero-carousel-link"
             >
               <div className="hero-carousel-inner" key={currentBannerIndex}>
-                <img
-                  src={getImageUrl(currentBanner.image_url)}
-                  alt={currentBanner.title || 'Banner'}
+                <div
                   className="hero-carousel-image"
                   key={currentBanner.id}
+                  style={{ backgroundImage: `url(${getImageUrl(currentBanner.image_url)})` }}
                 />
               </div>
             </a>
           ) : (
             <div className="hero-carousel-inner" key={currentBannerIndex}>
-              <img
-                src={getImageUrl(currentBanner.image_url)}
-                alt={currentBanner.title || 'Banner'}
+              <div
                 className="hero-carousel-image"
                 key={currentBanner.id}
+                style={{ backgroundImage: `url(${getImageUrl(currentBanner.image_url)})` }}
               />
             </div>
           )}
@@ -249,8 +247,10 @@ const Home: React.FC = () => {
           )}
         </section>
       ) : (
-        <section className="hero-carousel hero-carousel-empty" aria-label="Main banner carousel">
-          <div className="hero-carousel-inner" />
+        <section className="hero-carousel" aria-label="Main banner carousel" style={{ backgroundColor: 'white', minHeight: '480px' }}>
+          <div className="hero-carousel-inner" style={{ backgroundColor: 'white' }}>
+            <div className="hero-carousel-image" style={{ backgroundColor: 'white' }} />
+          </div>
         </section>
       )}
 
