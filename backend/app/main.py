@@ -33,7 +33,7 @@ app.add_middleware(
 # CORS 설정 (FRONTEND_URL 또는 기본값)
 _cors_origins = [o.strip() for o in settings.FRONTEND_URL.split(",") if o.strip()]
 if not _cors_origins:
-    _cors_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    _cors_origins = ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173", "http://127.0.0.1:5173"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,

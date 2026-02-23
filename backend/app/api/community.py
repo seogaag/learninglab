@@ -83,6 +83,19 @@ def _serialize_image_urls(urls: List[str]) -> Optional[str]:
     return json.dumps(urls)
 
 
+def _get_community_upload_dir() -> Path:
+    """Docker에서는 /app/uploads/community, 로컬에서는 프로젝트/uploads/community 사용"""
+    import os
+    from pathlib import Path
+    base = os.getenv("UPLOAD_DIR")
+    if base:
+        return Path(base) / "community"
+    if Path("/app/uploads").exists():
+        return Path("/app/uploads/community")
+    project_root = Path(__file__).resolve().parent.parent.parent.parent
+    return project_root / "uploads" / "community"
+
+
 @router.post("/upload-image")
 async def upload_community_image(
     file: UploadFile = File(...),
@@ -96,17 +109,19 @@ async def upload_community_image(
     import shutil
     import time
     from pathlib import Path
-    from fastapi.responses import FileResponse
-    UPLOAD_DIR = Path("/app/uploads/community")
+    UPLOAD_DIR = _get_community_upload_dir()
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     ALLOWED = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
     MAX_MB = 5
-    filename = file.filename or "image.png"
+    filename = (file.filename or "").strip() or "image.png"
+    # 붙여넣기 이미지는 filename이 "blob" 또는 빈 문자열일 수 있음
+    if filename.lower() in ("", "blob", "clipboard"):
+        filename = "image.png"
     ext = Path(filename).suffix.lower()
     if not ext:
         mime = (file.content_type or "").split(";")[0].strip()
         ext = {"image/png": ".png", "image/jpeg": ".jpg", "image/gif": ".gif", "image/webp": ".webp"}.get(mime, ".png")
-        filename = filename.rstrip(".") + ext
+        filename = (filename or "image").rstrip(".") + ext
     if ext not in ALLOWED:
         raise HTTPException(status_code=400, detail=f"Allowed: {', '.join(ALLOWED)}")
     content = await file.read()
@@ -134,7 +149,7 @@ async def get_community_image(filename: str):
     from urllib.parse import unquote
     from fastapi.responses import FileResponse
     decoded = unquote(filename)
-    path = Path("/app/uploads/community") / decoded
+    path = _get_community_upload_dir() / decoded
     if not path.exists() or not path.is_file():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
     ext = path.suffix

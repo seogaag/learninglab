@@ -1023,12 +1023,20 @@ const PostForm: React.FC<{
         setImageItems(prev => prev.map((item, i) =>
           i === prev.length - 1 && item.id ? { ...item, serverUrl: url } : item
         ))
-      } catch (err) {
+      } catch (err: unknown) {
         console.error('Image upload failed:', err)
         blobUrlsRef.current.delete(id)
         URL.revokeObjectURL(blobUrl)
         setImageItems(prev => prev.slice(0, -1))
-        alert('이미지 업로드에 실패했습니다.')
+        let msg = '이미지 업로드에 실패했습니다.'
+        if (err && typeof err === 'object' && 'response' in err) {
+          const res = (err as { response?: { status?: number; data?: { detail?: string } } }).response
+          if (res?.status === 401) msg = '로그인이 필요합니다.'
+          else if (res?.status === 413) msg = '파일이 5MB를 초과합니다.'
+          else if (res?.status === 400 && res?.data?.detail) msg = String(res.data.detail)
+          else if (res?.data?.detail) msg = String(res.data.detail)
+        }
+        alert(msg)
       }
     }
     setUploadingImage(false)
@@ -1187,23 +1195,23 @@ const PostForm: React.FC<{
       }
 
       if (editingPost) {
-        // 수정 모드
+        // Edit mode: always send image_urls so backend can clear when user removes all
         await communityApi.updatePost(editingPost.id, {
           title: title.trim(),
           content: content.trim(),
           tags: tags.length > 0 ? tags : undefined,
           mentions: mentions.length > 0 ? mentions : undefined,
-          image_urls: imageItems.filter(i => i.serverUrl).length > 0 ? imageItems.map(i => i.serverUrl).filter(Boolean) : undefined
+          image_urls: imageItems.map(i => i.serverUrl).filter(Boolean)
         })
       } else {
-        // 생성 모드
+        // Create mode
         await communityApi.createPost({
           post_type: boardType,
           title: title.trim(),
           content: content.trim(),
           tags: tags.length > 0 ? tags : undefined,
           mentions: mentions.length > 0 ? mentions : undefined,
-          image_urls: imageItems.filter(i => i.serverUrl).length > 0 ? imageItems.map(i => i.serverUrl).filter(Boolean) : undefined
+          image_urls: imageItems.map(i => i.serverUrl).filter(Boolean)
         }, adminToken)
       }
       onSuccess()
