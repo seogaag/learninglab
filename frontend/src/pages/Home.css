@@ -27,7 +27,7 @@
 .hero-carousel-image {
   position: absolute;
   inset: 0;
-  background-size: 100% auto;
+  background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
   background-color: #ffffff;
