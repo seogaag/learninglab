@@ -357,7 +357,11 @@ const Classroom: React.FC = () => {
                     <div 
                       key={course.id} 
                       className="course-card"
-                      onClick={() => handleCourseClick(course)}
+                      onClick={() => {
+                        if (course.alternateLink) {
+                          window.open(course.alternateLink, '_blank', 'noopener,noreferrer')
+                        }
+                      }}
                     >
                       <div className="course-header">
                         <h3 className="course-title">{course.name}</h3>
