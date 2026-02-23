@@ -195,3 +195,145 @@
   color: #555;
   font-size: 0.9rem;
 }
+
+/* Hamburger (모바일에서만 표시) */
+.hamburger-btn {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.hamburger-btn span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: #57463D;
+  border-radius: 1px;
+  transition: transform 0.3s, opacity 0.3s;
+}
+
+.hamburger-btn:hover {
+  background: rgba(87, 70, 61, 0.08);
+}
+
+.hamburger-btn[aria-expanded="true"] span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.hamburger-btn[aria-expanded="true"] span:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger-btn[aria-expanded="true"] span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* 모바일 반응형 */
+@media (max-width: 992px) {
+  .header {
+    height: 64px;
+  }
+
+  .header-container {
+    padding: 0 1rem;
+  }
+
+  .hamburger-btn {
+    display: flex;
+  }
+
+  .logo-text {
+    font-size: 1rem;
+  }
+
+  .logo-img {
+    height: 36px;
+  }
+
+  .header-nav {
+    position: fixed;
+    top: 64px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    flex-direction: column;
+    gap: 0;
+    background: #ffffff;
+    padding: 1rem 0 2rem;
+    align-items: stretch;
+    box-shadow: none;
+    transform: translateX(-100%);
+    opacity: 0;
+    visibility: hidden;
+    transition: transform 0.3s, opacity 0.3s, visibility 0.3s;
+    overflow-y: auto;
+    z-index: 999;
+  }
+
+  .header-nav.nav-open {
+    transform: translateX(0);
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .header-nav .nav-link {
+    padding: 1rem 1.5rem;
+    font-size: 1.1rem;
+    border-radius: 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  .profile-name {
+    display: none;
+  }
+
+  .dropdown-arrow {
+    display: none;
+  }
+
+  .profile-img {
+    width: 36px;
+    height: 36px;
+  }
+
+  .user-profile > div {
+    padding: 0.35rem !important;
+  }
+
+  .sign-in-btn,
+  .sign-up-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .header-right > div {
+    gap: 0.5rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-container {
+    padding: 0 0.75rem;
+  }
+
+  .logo-text {
+    font-size: 0.95rem;
+  }
+
+  .logo-img {
+    height: 32px;
+  }
+
+  .sign-up-btn {
+    display: none;
+  }
+}

@@ -5,6 +5,7 @@ import './Header.css'
 
 const Header: React.FC = () => {
   const [showDropdown, setShowDropdown] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const location = useLocation()
   const { user, token, isLoading, login, logout } = useAuth()
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -31,39 +32,50 @@ const Header: React.FC = () => {
     }
   }, [showDropdown])
 
+  // 모바일 메뉴 열림 시 body 스크롤 방지
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [mobileMenuOpen])
+
+  const closeMobileMenu = () => setMobileMenuOpen(false)
+
   return (
     <header className="header">
       <div className="header-container">
         <div className="header-left">
-          <Link to="/" className="logo">
+          <button
+            type="button"
+            className="hamburger-btn"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={mobileMenuOpen}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
+          <Link to="/" className="logo" onClick={closeMobileMenu}>
             <img src="/goodneighbors-logo.jpg" alt="Good Neighbors" className="logo-img" />
             <span className="logo-text">Fundraising Lab</span>
           </Link>
         </div>
         
-        <nav className="header-nav">
-          <Link 
-            to="/" 
-            className={location.pathname === '/' ? 'nav-link active' : 'nav-link'}
-          >
+        <nav className={`header-nav ${mobileMenuOpen ? 'nav-open' : ''}`}>
+          <Link to="/" className={location.pathname === '/' ? 'nav-link active' : 'nav-link'} onClick={closeMobileMenu}>
             Home
           </Link>
-          <Link 
-            to="/learning" 
-            className={location.pathname === '/learning' ? 'nav-link active' : 'nav-link'}
-          >
+          <Link to="/learning" className={location.pathname === '/learning' ? 'nav-link active' : 'nav-link'} onClick={closeMobileMenu}>
             Learning
           </Link>
-          <Link 
-            to="/community" 
-            className={location.pathname === '/community' ? 'nav-link active' : 'nav-link'}
-          >
+          <Link to="/community" className={location.pathname === '/community' ? 'nav-link active' : 'nav-link'} onClick={closeMobileMenu}>
             Community
           </Link>
-          <Link 
-            to="/hub" 
-            className={location.pathname === '/hub' ? 'nav-link active' : 'nav-link'}
-          >
+          <Link to="/hub" className={location.pathname === '/hub' ? 'nav-link active' : 'nav-link'} onClick={closeMobileMenu}>
             Hub
           </Link>
         </nav>
