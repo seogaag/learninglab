@@ -20,15 +20,19 @@ function getPostImageSrc(url: string): string {
     const pathBefore = url.slice(0, lastSlash + 1)
     const filename = url.slice(lastSlash + 1)
     const encodedFilename = encodeURIComponent(filename)
-    const path = `${pathBefore}${encodedFilename}`
     const apiBase = getApiBase().replace(/\/$/, '')
-    // 개발: apiBase가 http로 시작하면 백엔드 직접 호출 (예: http://localhost:8000)
-    // 프로덕션: apiBase가 /api → origin + /community/image/ (nginx location /community/image/)
     const isDev = apiBase.startsWith('http://') || apiBase.startsWith('https://')
     if (url.startsWith('/community/')) {
-      const full = isDev ? `${apiBase}${path}` : (typeof window !== 'undefined' ? window.location.origin : '') + path
+      // 개발: http://localhost:8000/community/image/xxx
+      // 프로덕션: /api/community/image/xxx 사용 (nginx rewrite로 백엔드에 전달, CDN/LB에서 /api/*만 라우팅되는 경우에도 동작)
+      const path = `/community/image/${encodedFilename}`
+      const full = isDev ? `${apiBase}${path}` : `${apiBase}${path}`
+      if (typeof window !== 'undefined' && full.startsWith('/')) {
+        return window.location.origin + full
+      }
       return full
     }
+    const path = `${pathBefore}${encodedFilename}`
     const fullPath = `${apiBase}${path}`
     if (typeof window !== 'undefined' && fullPath.startsWith('/')) {
       return window.location.origin + fullPath
