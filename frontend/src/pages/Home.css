@@ -8,7 +8,7 @@
   width: 100%;
   min-height: 480px;
   overflow: hidden;
-  background: #f0f0f0;
+  background: #ffffff;
 }
 
 .hero-carousel-link {
@@ -30,14 +30,14 @@
   background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
-  background-color: #f0f0f0;
+  background-color: #ffffff;
 }
 
 /* ========== 고정 공지 (배너 밑) ========== */
 .home-pinned-notices {
   width: 100%;
   padding: 1.5rem 2rem;
-  background: #FFF9E6;
+  background: #ffffff;
   border-bottom: 1px solid #E9EADE;
 }
 
