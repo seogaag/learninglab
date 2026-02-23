@@ -999,14 +999,16 @@ const PostForm: React.FC<{
       try {
         const { url } = await communityApi.uploadImage(file)
         setImageItems(prev => prev.map((item, i) =>
-          i === prev.length - 1 && item.blobUrl ? { serverUrl: url } : item
+          i === prev.length - 1 && item.blobUrl ? { serverUrl: url, blobUrl: item.blobUrl } : item
         ))
       } catch (err) {
         console.error('Image upload failed:', err)
-        setImageItems(prev => prev.slice(0, -1))
+        setImageItems(prev => {
+          const next = prev.slice(0, -1)
+          URL.revokeObjectURL(blobUrl)
+          return next
+        })
         alert('이미지 업로드에 실패했습니다.')
-      } finally {
-        URL.revokeObjectURL(blobUrl)
       }
     }
     setUploadingImage(false)

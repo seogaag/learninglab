@@ -172,13 +172,6 @@ const Classroom: React.FC = () => {
     }
   }
 
-  const handleCourseClick = (course: Course) => {
-    setSelectedCourse(course)
-    if (course.id && token) {
-      loadCoursework(course.id)
-    }
-  }
-
   const getStatusFromCourseState = (courseState?: string): 'ongoing' | 'preparing' | 'finished' => {
     if (!courseState) return 'ongoing'
     const state = courseState.toUpperCase()
