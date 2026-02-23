@@ -23,6 +23,7 @@ const MiniCalendar: React.FC<MiniCalendarProps> = ({ eventDates }) => {
 
   const prevMonth = () => setViewDate(new Date(year, month - 1, 1))
   const nextMonth = () => setViewDate(new Date(year, month + 1, 1))
+  const goToToday = () => setViewDate(new Date())
 
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
   const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
@@ -57,14 +58,19 @@ const MiniCalendar: React.FC<MiniCalendarProps> = ({ eventDates }) => {
           )
         })}
       </div>
-      <a
-        href={GPC_CALENDAR_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mini-calendar-link"
-      >
-        Open Google Calendar →
-      </a>
+      <div className="mini-calendar-actions">
+        <button type="button" className="mini-calendar-today-btn" onClick={goToToday}>
+          오늘로 가기
+        </button>
+        <a
+          href={GPC_CALENDAR_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mini-calendar-link"
+        >
+          Open Google Calendar →
+        </a>
+      </div>
     </div>
   )
 }
@@ -332,7 +338,7 @@ const Home: React.FC = () => {
 
       {/* Remarkable: Notice + Calendar (1:1) */}
       <section className="remarkable-section">
-        <h2 className="section-main-title remarkable-section-title">Remarkable</h2>
+        <h2 className="section-main-title remarkable-section-title"></h2>
         <div className="remarkable-grid">
           <div className="remarkable-left">
             <div className="remarkable-notice-box">

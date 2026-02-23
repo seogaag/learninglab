@@ -59,7 +59,7 @@
 }
 
 .remarkable-notice-box {
-  background: #FFE566;
+  background: #FFFDE7;
   border: 2px solid #FFD55B;
   border-radius: 12px;
   padding: 1.5rem;
@@ -86,14 +86,15 @@
   align-items: flex-start;
   gap: 0.5rem;
   padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.7);
+  background: #ffffff;
+  border: 3px solid #FFD55B;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .remarkable-notice-item:hover {
-  background: rgba(255, 255, 255, 0.95);
+  background: #ffffff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
@@ -226,10 +227,34 @@
   background: #e53935;
 }
 
-.mini-calendar-link {
-  display: block;
+.mini-calendar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
   margin-top: 1rem;
-  text-align: center;
+}
+
+.mini-calendar-today-btn {
+  padding: 0.4rem 0.9rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+  background: #fff;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.mini-calendar-today-btn:hover {
+  background: #f5f5f5;
+  border-color: #ff9800;
+  color: #ff9800;
+}
+
+.mini-calendar-link {
   font-size: 0.9rem;
   color: #1976d2;
   text-decoration: none;
