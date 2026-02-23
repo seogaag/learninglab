@@ -709,6 +709,10 @@ const Community: React.FC = () => {
                     </div>
                   )}
                 </div>
+                <div
+                  className="post-content"
+                  dangerouslySetInnerHTML={renderContent(selectedPost.content)}
+                />
                 {((selectedPost.image_urls && selectedPost.image_urls.length > 0) || selectedPost.image_url) && (
                   <div className="post-images-container">
                     {(selectedPost.image_urls || (selectedPost.image_url ? [selectedPost.image_url] : [])).slice(0, MAX_IMAGES).map((url, idx) => (
@@ -722,10 +726,6 @@ const Community: React.FC = () => {
                     ))}
                   </div>
                 )}
-                <div
-                  className="post-content"
-                  dangerouslySetInnerHTML={renderContent(selectedPost.content)}
-                />
                 <div className="post-actions">
                   <button
                     className={`like-btn ${selectedPost.is_liked ? 'liked' : ''}`}
@@ -1034,19 +1034,19 @@ const PostForm: React.FC<{
       setImageItems(prev => [...prev, { serverUrl: '', id }].slice(0, MAX_IMAGES))
       try {
         const { url } = await communityApi.uploadImage(file)
-        setImageItems(prev => prev.map((item, i) =>
-          i === prev.length - 1 && item.id ? { ...item, serverUrl: url } : item
+        setImageItems(prev => prev.map((item) =>
+          item.id === id ? { ...item, serverUrl: url } : item
         ))
       } catch (err: unknown) {
         console.error('Image upload failed:', err)
         blobUrlsRef.current.delete(id)
         URL.revokeObjectURL(blobUrl)
         setImageItems(prev => prev.slice(0, -1))
-        let msg = '이미지 업로드에 실패했습니다.'
+        let msg = 'Image upload failed.'
         if (err && typeof err === 'object' && 'response' in err) {
           const res = (err as { response?: { status?: number; data?: { detail?: string } } }).response
-          if (res?.status === 401) msg = '로그인이 필요합니다.'
-          else if (res?.status === 413) msg = '파일이 5MB를 초과합니다.'
+          if (res?.status === 401) msg = 'Login required.'
+          else if (res?.status === 413) msg = 'File exceeds 5MB limit.'
           else if (res?.status === 400 && res?.data?.detail) msg = String(res.data.detail)
           else if (res?.data?.detail) msg = String(res.data.detail)
         }
@@ -1099,14 +1099,20 @@ const PostForm: React.FC<{
   }
 
   const handlePasteImage = (e: React.ClipboardEvent) => {
-    if (imageItems.length >= MAX_IMAGES) return
+    if (imageItems.length >= MAX_IMAGES) {
+      alert('Maximum 3 images allowed.')
+      return
+    }
     const items = e.clipboardData?.items
     if (!items) return
     for (const item of Array.from(items)) {
       if (item.type.startsWith('image/')) {
         e.preventDefault()
         const file = item.getAsFile()
-        if (!file) return
+        if (!file) {
+          alert('Image paste is not supported in this browser. Please use the file upload button or drag and drop.')
+          return
+        }
         uploadImageFiles([file])
         return
       }
@@ -1427,6 +1433,9 @@ const PostForm: React.FC<{
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
+          onPaste={handlePasteImage}
+          tabIndex={0}
+          title="Click here then paste (Ctrl+V) - paste may not work in all browsers"
         >
           {imageItems.length < MAX_IMAGES && (
             <div className="image-upload-row">
@@ -1439,7 +1448,7 @@ const PostForm: React.FC<{
                 className="image-upload-input"
               />
               <span className="image-upload-hint">
-                {uploadingImage ? '업로드 중...' : '드래그 앤 드롭, 붙여넣기(Ctrl+V), 또는 파일 추가'}
+                {uploadingImage ? 'Uploading...' : 'Drag & drop, paste (Ctrl+V in this area), or click to add files. Paste may not work in all browsers.'}
               </span>
             </div>
           )}
