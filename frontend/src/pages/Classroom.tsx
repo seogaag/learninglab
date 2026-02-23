@@ -156,22 +156,6 @@ const Classroom: React.FC = () => {
     }
   }
 
-  const loadCoursework = async (courseId: string) => {
-    if (!token) return
-    
-    setLoading(true)
-    setError(null)
-    try {
-      const data = await classroomApi.getCoursework(courseId, token)
-      setCoursework(data)
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to load coursework')
-      console.error('Error loading coursework:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const getStatusFromCourseState = (courseState?: string): 'ongoing' | 'preparing' | 'finished' => {
     if (!courseState) return 'ongoing'
     const state = courseState.toUpperCase()

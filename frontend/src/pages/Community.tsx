@@ -9,7 +9,7 @@ const MAX_IMAGES = 3
 
 type BoardType = 'notice' | 'forum' | 'request' | 'all'
 
-type ImageItem = { serverUrl: string; blobUrl?: string }
+type ImageItem = { serverUrl: string; id?: string }
 
 /** 게시글 이미지 URL을 표시용 절대 경로로 변환 */
 function getPostImageSrc(url: string): string {
@@ -953,6 +953,7 @@ const PostForm: React.FC<{
   const [imageItems, setImageItems] = useState<ImageItem[]>(
     (editingPost?.image_urls?.slice(0, MAX_IMAGES) || (editingPost?.image_url ? [editingPost.image_url] : [])).map(url => ({ serverUrl: url }))
   )
+  const blobUrlsRef = React.useRef<Map<string, string>>(new Map())
   const [uploadingImage, setUploadingImage] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [adminPassword, setAdminPassword] = useState('')
@@ -970,20 +971,23 @@ const PostForm: React.FC<{
     if (editingPost) {
       setTitle(editingPost.title)
       setContent(editingPost.content)
+      blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url))
+      blobUrlsRef.current.clear()
       setImageItems(
         (editingPost.image_urls?.slice(0, MAX_IMAGES) || (editingPost.image_url ? [editingPost.image_url] : [])).map(url => ({ serverUrl: url }))
       )
     } else {
       setTitle('')
       setContent('')
+      blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url))
+      blobUrlsRef.current.clear()
       setImageItems([])
     }
   }, [editingPost])
 
-  const imageItemsRef = React.useRef<ImageItem[]>([])
-  imageItemsRef.current = imageItems
   useEffect(() => () => {
-    imageItemsRef.current.forEach(item => { if (item.blobUrl) URL.revokeObjectURL(item.blobUrl) })
+    blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url))
+    blobUrlsRef.current.clear()
   }, [])
 
   const uploadImageFiles = async (files: FileList | File[]) => {
@@ -994,20 +998,20 @@ const PostForm: React.FC<{
     if (!imageFiles.length) return
     setUploadingImage(true)
     for (const file of imageFiles) {
+      const id = `blob-${Date.now()}-${Math.random().toString(36).slice(2)}`
       const blobUrl = URL.createObjectURL(file)
-      setImageItems(prev => [...prev, { serverUrl: '', blobUrl }].slice(0, MAX_IMAGES))
+      blobUrlsRef.current.set(id, blobUrl)
+      setImageItems(prev => [...prev, { serverUrl: '', id }].slice(0, MAX_IMAGES))
       try {
         const { url } = await communityApi.uploadImage(file)
         setImageItems(prev => prev.map((item, i) =>
-          i === prev.length - 1 && item.blobUrl ? { serverUrl: url, blobUrl: item.blobUrl } : item
+          i === prev.length - 1 && item.id ? { ...item, serverUrl: url } : item
         ))
       } catch (err) {
         console.error('Image upload failed:', err)
-        setImageItems(prev => {
-          const next = prev.slice(0, -1)
-          URL.revokeObjectURL(blobUrl)
-          return next
-        })
+        blobUrlsRef.current.delete(id)
+        URL.revokeObjectURL(blobUrl)
+        setImageItems(prev => prev.slice(0, -1))
         alert('이미지 업로드에 실패했습니다.')
       }
     }
@@ -1045,7 +1049,13 @@ const PostForm: React.FC<{
   const removeImage = (idx: number) => {
     setImageItems(prev => {
       const item = prev[idx]
-      if (item?.blobUrl) URL.revokeObjectURL(item.blobUrl)
+      if (item?.id) {
+        const blobUrl = blobUrlsRef.current.get(item.id)
+        if (blobUrl) {
+          URL.revokeObjectURL(blobUrl)
+          blobUrlsRef.current.delete(item.id)
+        }
+      }
       return prev.filter((_, i) => i !== idx)
     })
   }
@@ -1398,9 +1408,9 @@ const PostForm: React.FC<{
           {imageItems.length > 0 && (
             <div className="post-form-images">
               {imageItems.map((item, idx) => (
-                <div key={idx} className="post-form-image-item">
+                <div key={item.id || item.serverUrl || idx} className="post-form-image-item">
                   <img
-                    src={item.blobUrl || getPostImageSrc(item.serverUrl)}
+                    src={(item.id && blobUrlsRef.current.get(item.id)) || getPostImageSrc(item.serverUrl)}
                     alt={`Preview ${idx + 1}`}
                   />
                   <button type="button" className="remove-image-btn" onClick={() => removeImage(idx)} title="Remove">
