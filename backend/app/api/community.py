@@ -122,6 +122,12 @@ async def upload_community_image(
     return {"url": url, "filename": safe}
 
 
+def _get_media_type(ext: str) -> str:
+    m = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+         ".gif": "image/gif", ".webp": "image/webp"}
+    return m.get(ext.lower(), "application/octet-stream")
+
+
 @router.get("/image/{filename:path}")
 async def get_community_image(filename: str):
     """Community 게시글용 이미지 조회"""
@@ -131,7 +137,8 @@ async def get_community_image(filename: str):
     path = Path("/app/uploads/community") / decoded
     if not path.exists() or not path.is_file():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
-    return FileResponse(path)
+    ext = path.suffix
+    return FileResponse(path, media_type=_get_media_type(ext))
 
 
 @router.get("/posts", response_model=PostListResponse)

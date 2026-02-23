@@ -16,17 +16,24 @@ function getPostImageSrc(url: string): string {
   if (!url) return ''
   if (url.startsWith('http://') || url.startsWith('https://')) return url
   if (url.startsWith('/admin/upload/image/') || url.startsWith('/community/image/')) {
-    const base = getApiBase().replace(/\/$/, '')
     const lastSlash = url.lastIndexOf('/')
     const pathBefore = url.slice(0, lastSlash + 1)
     const filename = url.slice(lastSlash + 1)
     const encodedFilename = encodeURIComponent(filename)
-    const path = `${base}${pathBefore}${encodedFilename}`
-    // 절대 URL로 변환 (상대 경로일 때 origin 결합 - 일부 환경에서 img 로드 안정성)
-    if (typeof window !== 'undefined' && path.startsWith('/')) {
-      return window.location.origin + path
+    const path = `${pathBefore}${encodedFilename}`
+    const apiBase = getApiBase().replace(/\/$/, '')
+    // 개발: apiBase가 http로 시작하면 백엔드 직접 호출 (예: http://localhost:8000)
+    // 프로덕션: apiBase가 /api → origin + /community/image/ (nginx location /community/image/)
+    const isDev = apiBase.startsWith('http://') || apiBase.startsWith('https://')
+    if (url.startsWith('/community/')) {
+      const full = isDev ? `${apiBase}${path}` : (typeof window !== 'undefined' ? window.location.origin : '') + path
+      return full
     }
-    return path
+    const fullPath = `${apiBase}${path}`
+    if (typeof window !== 'undefined' && fullPath.startsWith('/')) {
+      return window.location.origin + fullPath
+    }
+    return fullPath
   }
   return url
 }
