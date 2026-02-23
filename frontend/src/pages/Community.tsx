@@ -9,6 +9,21 @@ const MAX_IMAGES = 3
 
 type BoardType = 'notice' | 'forum' | 'request' | 'all'
 
+/** 게시글 이미지 URL을 표시용 절대 경로로 변환 */
+function getPostImageSrc(url: string): string {
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://')) return url
+  if (url.startsWith('/admin/upload/image/') || url.startsWith('/community/image/')) {
+    const base = getApiBase().replace(/\/$/, '')
+    const lastSlash = url.lastIndexOf('/')
+    const pathBefore = url.slice(0, lastSlash + 1)
+    const filename = url.slice(lastSlash + 1)
+    const encodedFilename = encodeURIComponent(filename)
+    return `${base}${pathBefore}${encodedFilename}`
+  }
+  return url
+}
+
 const Community: React.FC = () => {
   const { user, token, login } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -667,9 +682,7 @@ const Community: React.FC = () => {
                     {(selectedPost.image_urls || (selectedPost.image_url ? [selectedPost.image_url] : [])).slice(0, MAX_IMAGES).map((url, idx) => (
                       <div key={idx} className="post-image-container">
                         <img 
-                          src={(url.startsWith('/admin/upload/image/') || url.startsWith('/community/image/'))
-                            ? `${getApiBase()}${url}`
-                            : url} 
+                          src={getPostImageSrc(url)} 
                           alt={`Post attachment ${idx + 1}`}
                           className="post-image"
                         />
@@ -990,6 +1003,30 @@ const PostForm: React.FC<{
     setImageUrls(prev => prev.filter((_, i) => i !== idx))
   }
 
+  const handlePasteImage = async (e: React.ClipboardEvent) => {
+    if (imageUrls.length >= MAX_IMAGES) return
+    const items = e.clipboardData?.items
+    if (!items) return
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault()
+        const file = item.getAsFile()
+        if (!file) return
+        setUploadingImage(true)
+        try {
+          const { url } = await communityApi.uploadImage(file)
+          setImageUrls(prev => [...prev, url].slice(0, MAX_IMAGES))
+        } catch (err) {
+          console.error('Paste image upload failed:', err)
+          alert('이미지 업로드에 실패했습니다.')
+        } finally {
+          setUploadingImage(false)
+        }
+        return
+      }
+    }
+  }
+
   const loadMentionUsers = async (search: string) => {
     setLoadingUsers(true)
     try {
@@ -1136,6 +1173,7 @@ const PostForm: React.FC<{
         <textarea
           ref={textareaRef}
           value={content}
+          onPaste={handlePasteImage}
           onChange={(e) => {
             const newContent = e.target.value
             setContent(newContent)
@@ -1316,7 +1354,7 @@ const PostForm: React.FC<{
             {imageUrls.map((url, idx) => (
               <div key={idx} className="post-form-image-item">
                 <img
-                  src={(url.startsWith('/admin/upload/image/') || url.startsWith('/community/image/')) ? `${getApiBase()}${url}` : url}
+                  src={getPostImageSrc(url)}
                   alt={`Preview ${idx + 1}`}
                 />
                 <button type="button" className="remove-image-btn" onClick={() => removeImage(idx)} title="Remove">
