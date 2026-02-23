@@ -21,7 +21,12 @@ function getPostImageSrc(url: string): string {
     const pathBefore = url.slice(0, lastSlash + 1)
     const filename = url.slice(lastSlash + 1)
     const encodedFilename = encodeURIComponent(filename)
-    return `${base}${pathBefore}${encodedFilename}`
+    const path = `${base}${pathBefore}${encodedFilename}`
+    // 절대 URL로 변환 (상대 경로일 때 origin 결합 - 일부 환경에서 img 로드 안정성)
+    if (typeof window !== 'undefined' && path.startsWith('/')) {
+      return window.location.origin + path
+    }
+    return path
   }
   return url
 }
@@ -1435,8 +1440,8 @@ const PostForm: React.FC<{
         </div>
       )}
       <div className="form-actions">
-        <button type="submit" disabled={submitting}>
-          {submitting ? 'Posting...' : 'Post'}
+        <button type="submit" disabled={submitting || uploadingImage}>
+          {submitting ? 'Posting...' : uploadingImage ? 'Uploading images...' : 'Post'}
         </button>
         <button type="button" onClick={onCancel}>Cancel</button>
       </div>
