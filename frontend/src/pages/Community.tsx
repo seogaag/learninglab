@@ -961,6 +961,7 @@ const PostForm: React.FC<{
   const [mentionIndex, setMentionIndex] = useState(-1)
   const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0 })
   const [loadingUsers, setLoadingUsers] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
   const textareaRef = React.useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
@@ -977,33 +978,59 @@ const PostForm: React.FC<{
     }
   }, [editingPost])
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files?.length || imageUrls.length >= MAX_IMAGES) return
+  const uploadImageFiles = async (files: FileList | File[]) => {
+    const arr = Array.from(files)
+    if (!arr.length || imageUrls.length >= MAX_IMAGES) return
     const remaining = MAX_IMAGES - imageUrls.length
-    const toAdd = Math.min(remaining, files.length)
+    const imageFiles = arr.filter(f => f.type.startsWith('image/')).slice(0, remaining)
+    if (!imageFiles.length) return
     setUploadingImage(true)
     try {
-      for (let i = 0; i < toAdd; i++) {
-        const file = files[i]
-        if (!file.type.startsWith('image/')) continue
+      for (const file of imageFiles) {
         const { url } = await communityApi.uploadImage(file)
         setImageUrls(prev => [...prev, url].slice(0, MAX_IMAGES))
       }
     } catch (err) {
       console.error('Image upload failed:', err)
-      alert('Failed to upload image.')
+      alert('이미지 업로드에 실패했습니다.')
     } finally {
       setUploadingImage(false)
-      e.target.value = ''
     }
+  }
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files?.length) return
+    uploadImageFiles(files)
+    e.target.value = ''
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+    const files = e.dataTransfer?.files
+    if (!files?.length) return
+    uploadImageFiles(files)
   }
 
   const removeImage = (idx: number) => {
     setImageUrls(prev => prev.filter((_, i) => i !== idx))
   }
 
-  const handlePasteImage = async (e: React.ClipboardEvent) => {
+  const handlePasteImage = (e: React.ClipboardEvent) => {
     if (imageUrls.length >= MAX_IMAGES) return
     const items = e.clipboardData?.items
     if (!items) return
@@ -1012,16 +1039,7 @@ const PostForm: React.FC<{
         e.preventDefault()
         const file = item.getAsFile()
         if (!file) return
-        setUploadingImage(true)
-        try {
-          const { url } = await communityApi.uploadImage(file)
-          setImageUrls(prev => [...prev, url].slice(0, MAX_IMAGES))
-        } catch (err) {
-          console.error('Paste image upload failed:', err)
-          alert('이미지 업로드에 실패했습니다.')
-        } finally {
-          setUploadingImage(false)
-        }
+        uploadImageFiles([file])
         return
       }
     }
@@ -1336,34 +1354,43 @@ const PostForm: React.FC<{
       </div>
       <div className="form-group">
         <label>Images (max {MAX_IMAGES})</label>
-        {imageUrls.length < MAX_IMAGES && (
-          <div className="image-upload-row">
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleImageUpload}
-              disabled={uploadingImage}
-              className="image-upload-input"
-            />
-            <span className="image-upload-hint">{uploadingImage ? 'Uploading...' : `Add image (${imageUrls.length}/${MAX_IMAGES})`}</span>
-          </div>
-        )}
-        {imageUrls.length > 0 && (
-          <div className="post-form-images">
-            {imageUrls.map((url, idx) => (
-              <div key={idx} className="post-form-image-item">
-                <img
-                  src={getPostImageSrc(url)}
-                  alt={`Preview ${idx + 1}`}
-                />
-                <button type="button" className="remove-image-btn" onClick={() => removeImage(idx)} title="Remove">
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+        <div
+          className={`image-drop-zone ${isDragging ? 'dragging' : ''} ${imageUrls.length >= MAX_IMAGES ? 'full' : ''}`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          {imageUrls.length < MAX_IMAGES && (
+            <div className="image-upload-row">
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageUpload}
+                disabled={uploadingImage}
+                className="image-upload-input"
+              />
+              <span className="image-upload-hint">
+                {uploadingImage ? '업로드 중...' : '드래그 앤 드롭, 붙여넣기(Ctrl+V), 또는 파일 추가'}
+              </span>
+            </div>
+          )}
+          {imageUrls.length > 0 && (
+            <div className="post-form-images">
+              {imageUrls.map((url, idx) => (
+                <div key={idx} className="post-form-image-item">
+                  <img
+                    src={getPostImageSrc(url)}
+                    alt={`Preview ${idx + 1}`}
+                  />
+                  <button type="button" className="remove-image-btn" onClick={() => removeImage(idx)} title="Remove">
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
       {boardType === 'notice' && showPasswordInput && (
         <div className="form-group">

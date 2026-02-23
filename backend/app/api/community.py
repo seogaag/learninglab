@@ -101,9 +101,12 @@ async def upload_community_image(
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     ALLOWED = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
     MAX_MB = 5
-    if not file.filename:
-        raise HTTPException(status_code=400, detail="No file provided")
-    ext = Path(file.filename).suffix.lower()
+    filename = file.filename or "image.png"
+    ext = Path(filename).suffix.lower()
+    if not ext:
+        mime = (file.content_type or "").split(";")[0].strip()
+        ext = {"image/png": ".png", "image/jpeg": ".jpg", "image/gif": ".gif", "image/webp": ".webp"}.get(mime, ".png")
+        filename = filename.rstrip(".") + ext
     if ext not in ALLOWED:
         raise HTTPException(status_code=400, detail=f"Allowed: {', '.join(ALLOWED)}")
     content = await file.read()
@@ -111,7 +114,7 @@ async def upload_community_image(
         raise HTTPException(status_code=413, detail=f"Max {MAX_MB}MB")
     await file.seek(0)
     ts = int(time.time() * 1000)
-    safe = f"{ts}_{file.filename}"
+    safe = f"{ts}_{filename}"
     path = UPLOAD_DIR / safe
     with open(path, "wb") as f:
         shutil.copyfileobj(file.file, f)

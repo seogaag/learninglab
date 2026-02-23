@@ -1132,11 +1132,28 @@
   text-decoration: underline;
 }
 
+.image-drop-zone {
+  margin-top: 0.5rem;
+  padding: 1rem;
+  border: 2px dashed #E9EADE;
+  border-radius: 8px;
+  background: #FAFAF8;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.image-drop-zone.dragging {
+  border-color: #89A230;
+  background: #F5F9E8;
+}
+
+.image-drop-zone.full {
+  padding: 0.5rem 1rem;
+}
+
 .image-upload-row {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  margin-top: 0.5rem;
 }
 
 .image-upload-input {
