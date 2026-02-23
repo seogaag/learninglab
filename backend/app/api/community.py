@@ -335,6 +335,7 @@ async def get_post(
     if post.post_type == "notice":
         author_name = "Global Partnership Center"
     
+    img_urls = _parse_image_urls(post.image_url)
     post_dict = {
         "id": post.id,
         "post_type": post.post_type,
@@ -344,7 +345,8 @@ async def get_post(
         "author_name": author_name,
         "is_pinned": post.is_pinned,
         "view_count": post.view_count,
-        "image_url": post.image_url,
+        "image_url": img_urls[0] if img_urls else post.image_url,
+        "image_urls": img_urls if img_urls else None,
         "like_count": like_count,
         "is_liked": is_liked,
         "is_resolved": getattr(post, 'is_resolved', False),

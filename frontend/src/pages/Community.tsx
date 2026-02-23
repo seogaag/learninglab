@@ -11,27 +11,41 @@ type BoardType = 'notice' | 'forum' | 'request' | 'all'
 
 type ImageItem = { serverUrl: string; id?: string }
 
-/** 게시글 이미지 URL을 표시용 절대 경로로 변환 */
+/** Parse URL that may be JSON array string (backend legacy) */
+function parseImageUrl(url: string): string {
+  if (!url || typeof url !== 'string') return ''
+  const s = url.trim()
+  if (s.startsWith('[')) {
+    try {
+      const arr = JSON.parse(s)
+      if (Array.isArray(arr) && arr[0]) return String(arr[0])
+    } catch {
+      /* ignore */
+    }
+  }
+  return s
+}
+
+/** Convert post image URL to absolute src for <img> */
 function getPostImageSrc(url: string): string {
-  if (!url) return ''
-  if (url.startsWith('http://') || url.startsWith('https://')) return url
-  if (url.startsWith('/admin/upload/image/') || url.startsWith('/community/image/')) {
-    const lastSlash = url.lastIndexOf('/')
-    const pathBefore = url.slice(0, lastSlash + 1)
-    const filename = url.slice(lastSlash + 1)
+  const raw = parseImageUrl(url)
+  if (!raw) return ''
+  if (raw.startsWith('http://') || raw.startsWith('https://')) return raw
+  if (raw.startsWith('/admin/upload/image/') || raw.startsWith('/community/image/')) {
+    const lastSlash = raw.lastIndexOf('/')
+    const filename = raw.slice(lastSlash + 1)
     const encodedFilename = encodeURIComponent(filename)
     const apiBase = getApiBase().replace(/\/$/, '')
     const isDev = apiBase.startsWith('http://') || apiBase.startsWith('https://')
-    if (url.startsWith('/community/')) {
-      // 개발: http://localhost:8000/community/image/xxx
-      // 프로덕션: /api/community/image/xxx 사용 (nginx rewrite로 백엔드에 전달, CDN/LB에서 /api/*만 라우팅되는 경우에도 동작)
+    if (raw.startsWith('/community/')) {
       const path = `/community/image/${encodedFilename}`
-      const full = isDev ? `${apiBase}${path}` : `${apiBase}${path}`
+      const full = `${apiBase}${path}`
       if (typeof window !== 'undefined' && full.startsWith('/')) {
         return window.location.origin + full
       }
       return full
     }
+    const pathBefore = raw.slice(0, lastSlash + 1)
     const path = `${pathBefore}${encodedFilename}`
     const fullPath = `${apiBase}${path}`
     if (typeof window !== 'undefined' && fullPath.startsWith('/')) {
@@ -39,7 +53,7 @@ function getPostImageSrc(url: string): string {
     }
     return fullPath
   }
-  return url
+  return raw
 }
 
 const Community: React.FC = () => {
