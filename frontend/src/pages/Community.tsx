@@ -36,7 +36,6 @@ function getPostImageSrc(url: string): string {
     const filename = raw.slice(lastSlash + 1)
     const encodedFilename = encodeURIComponent(filename)
     const apiBase = getApiBase().replace(/\/$/, '')
-    const isDev = apiBase.startsWith('http://') || apiBase.startsWith('https://')
     if (raw.startsWith('/community/')) {
       const path = `/community/image/${encodedFilename}`
       const full = `${apiBase}${path}`
