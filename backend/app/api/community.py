@@ -11,6 +11,7 @@ from app.schemas.post import (
 from app.core.security import verify_token
 from typing import List, Optional
 from datetime import datetime
+from pathlib import Path
 import re
 import traceback
 import logging
@@ -86,7 +87,6 @@ def _serialize_image_urls(urls: List[str]) -> Optional[str]:
 def _get_community_upload_dir() -> Path:
     """Docker에서는 /app/uploads/community, 로컬에서는 프로젝트/uploads/community 사용"""
     import os
-    from pathlib import Path
     base = os.getenv("UPLOAD_DIR")
     if base:
         return Path(base) / "community"
@@ -108,7 +108,6 @@ async def upload_community_image(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     import shutil
     import time
-    from pathlib import Path
     UPLOAD_DIR = _get_community_upload_dir()
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     ALLOWED = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
