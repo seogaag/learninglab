@@ -75,6 +75,45 @@ async def get_public_workspace_courses(db: Session = Depends(get_db)):
     return result
 
 
+# GPC 공개 캘린더 ID (Remarkable 섹션용)
+GPC_CALENDAR_ID = "c_ed59ae41705238343c6d33009246ce0b3497cef9136701a502cd17fe42b03e5a@group.calendar.google.com"
+ICAL_URL = f"https://calendar.google.com/calendar/ical/{GPC_CALENDAR_ID.replace('@', '%40')}/public/basic.ics"
+
+
+@router.get("/calendar-event-dates")
+async def get_calendar_event_dates():
+    """공개 Google 캘린더에서 이벤트가 있는 날짜 목록 반환 (YYYY-MM-DD). CORS 우회용."""
+    import httpx
+    import re
+    from datetime import datetime
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            r = await client.get(ICAL_URL)
+            r.raise_for_status()
+            text = r.text
+    except Exception as e:
+        print(f"[PUBLIC] Failed to fetch ical: {e}")
+        return {"dates": []}
+
+    dates = set()
+    # DTSTART 값 파싱 (날짜만)
+    for m in re.finditer(r"DTSTART(?:;.*?)?:(\d{8})", text):
+        dstr = m.group(1)
+        try:
+            dt = datetime.strptime(dstr, "%Y%m%d")
+            dates.add(dt.strftime("%Y-%m-%d"))
+        except ValueError:
+            pass
+    for m in re.finditer(r"DTSTART(?:;.*?)?:(\d{4}-\d{2}-\d{2})", text):
+        dates.add(m.group(1))
+    # DTSTART with time: 20250115T090000
+    for m in re.finditer(r"DTSTART(?:;.*?)?:(\d{4})(\d{2})(\d{2})T", text):
+        dates.add(f"{m.group(1)}-{m.group(2)}-{m.group(3)}")
+
+    return {"dates": sorted(dates)}
+
+
 @router.get("/pinned-notices")
 async def get_pinned_notices(db: Session = Depends(get_db)):
     """고정된 Notice 게시글 목록 조회 (메인 페이지 배너 밑 노출용)"""

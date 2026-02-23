@@ -166,6 +166,10 @@ export const publicApi = {
     const response = await apiClient.get('/public/pinned-notices')
     return response.data
   },
+  getCalendarEventDates: async (): Promise<{ dates: string[] }> => {
+    const response = await apiClient.get('/public/calendar-event-dates')
+    return response.data
+  },
 }
 
 // Community API

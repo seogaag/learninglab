@@ -4,6 +4,71 @@ import { publicApi, Banner, PinnedNotice } from '../services/api'
 import { getApiBase } from '../utils/apiBase'
 import './Home.css'
 
+const GPC_CALENDAR_URL = 'https://calendar.google.com/calendar/u/0?cid=Y19lZDU5YWU0MTcwNTIzODM0M2M2ZDMzMDA5MjQ2Y2UwYjM0OTdjZWY5MTM2NzAxYTUwMmNkMTdmZTQyYjAzZTVhQGdyb3VwLmNhbGVuZGFyLmdvb2dsZS5jb20'
+
+interface MiniCalendarProps {
+  eventDates: Set<string>
+}
+const MiniCalendar: React.FC<MiniCalendarProps> = ({ eventDates }) => {
+  const [viewDate, setViewDate] = useState(() => new Date())
+  const today = new Date()
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+
+  const year = viewDate.getFullYear()
+  const month = viewDate.getMonth()
+  const firstDay = new Date(year, month, 1)
+  const lastDay = new Date(year, month + 1, 0)
+  const startOffset = firstDay.getDay()
+  const daysInMonth = lastDay.getDate()
+
+  const prevMonth = () => setViewDate(new Date(year, month - 1, 1))
+  const nextMonth = () => setViewDate(new Date(year, month + 1, 1))
+
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+  const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+
+  const cells: (number | null)[] = []
+  for (let i = 0; i < startOffset; i++) cells.push(null)
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d)
+
+  return (
+    <div className="mini-calendar">
+      <div className="mini-calendar-header">
+        <button type="button" className="mini-calendar-arrow" onClick={prevMonth} aria-label="Previous month">‹</button>
+        <span className="mini-calendar-month">{monthNames[month]} {year}</span>
+        <button type="button" className="mini-calendar-arrow" onClick={nextMonth} aria-label="Next month">›</button>
+      </div>
+      <div className="mini-calendar-weekdays">
+        {dayLabels.map((l) => (
+          <span key={l} className="mini-calendar-weekday">{l}</span>
+        ))}
+      </div>
+      <div className="mini-calendar-grid">
+        {cells.map((d, i) => {
+          if (d === null) return <div key={`empty-${i}`} className="mini-calendar-cell empty" />
+          const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+          const isToday = dateStr === todayStr
+          const hasEvent = eventDates.has(dateStr)
+          return (
+            <div key={dateStr} className={`mini-calendar-cell ${isToday ? 'today' : ''}`}>
+              <span className="mini-calendar-date">{d}</span>
+              {hasEvent && <span className="mini-calendar-event-dot" />}
+            </div>
+          )
+        })}
+      </div>
+      <a
+        href={GPC_CALENDAR_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mini-calendar-link"
+      >
+        Open Google Calendar →
+      </a>
+    </div>
+  )
+}
+
 interface WorkingTogetherProject {
   id: number
   name: string
@@ -22,6 +87,7 @@ const Home: React.FC = () => {
   const navigate = useNavigate()
   const [banners, setBanners] = useState<Banner[]>([])
   const [pinnedNotices, setPinnedNotices] = useState<PinnedNotice[]>([])
+  const [calendarEventDates, setCalendarEventDates] = useState<Set<string>>(new Set())
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0)
   const [projectImageIndices, setProjectImageIndices] = useState<number[]>([0, 0, 0, 0])
 
@@ -120,7 +186,17 @@ const Home: React.FC = () => {
   useEffect(() => {
     loadBanners()
     loadPinnedNotices()
+    loadCalendarEventDates()
   }, [])
+
+  const loadCalendarEventDates = async () => {
+    try {
+      const { dates } = await publicApi.getCalendarEventDates()
+      setCalendarEventDates(new Set(dates || []))
+    } catch {
+      setCalendarEventDates(new Set())
+    }
+  }
 
   useEffect(() => {
     if (banners.length <= 1) return
@@ -254,30 +330,42 @@ const Home: React.FC = () => {
         </section>
       )}
 
-      {/* Pinned Notices (고정 공지) */}
-      {pinnedNotices.length > 0 && (
-        <section className="home-pinned-notices">
-          <h2 className="section-main-title notices-section-title">Notice</h2>
-          <div className="pinned-notices-inner">
-            {pinnedNotices.map((notice) => (
-              <div
-                key={notice.id}
-                className="pinned-notice-card"
-                onClick={() => navigate(`/community?post=${notice.id}`)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => e.key === 'Enter' && navigate(`/community?post=${notice.id}`)}
-              >
-                <span className="pinned-notice-badge">📌</span>
-                <div className="pinned-notice-content">
-                  <h3 className="pinned-notice-title">{notice.title}</h3>
-                  <p className="pinned-notice-text">{notice.content}</p>
+      {/* Remarkable: Notice + Calendar (1:1) */}
+      <section className="remarkable-section">
+        <h2 className="section-main-title remarkable-section-title">Remarkable</h2>
+        <div className="remarkable-grid">
+          <div className="remarkable-left">
+            <div className="remarkable-notice-box">
+              <h3 className="remarkable-notice-heading">Notice</h3>
+              {pinnedNotices.length > 0 ? (
+                <div className="remarkable-notice-list">
+                  {pinnedNotices.map((notice) => (
+                    <div
+                      key={notice.id}
+                      className="remarkable-notice-item"
+                      onClick={() => navigate(`/community?post=${notice.id}`)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => e.key === 'Enter' && navigate(`/community?post=${notice.id}`)}
+                    >
+                      <span className="remarkable-notice-badge">📌</span>
+                      <div>
+                        <h4 className="remarkable-notice-title">{notice.title}</h4>
+                        <p className="remarkable-notice-text">{notice.content}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
-            ))}
+              ) : (
+                <p className="remarkable-notice-empty">No notices at the moment.</p>
+              )}
+            </div>
           </div>
-        </section>
-      )}
+          <div className="remarkable-right">
+            <MiniCalendar eventDates={calendarEventDates} />
+          </div>
+        </div>
+      </section>
 
       {/* Working Together Section */}
       <div className="working-together-section">
