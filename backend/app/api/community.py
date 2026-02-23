@@ -529,18 +529,17 @@ async def update_post(
         )
     
     # 작성자 확인 또는 관리자 권한 확인
-    is_admin = False
-    if db_post.post_type == "notice":
-        from app.core.admin_auth import verify_admin_token
+    is_admin = payload.get("role") == "admin"
+    if is_admin and db_post.post_type == "notice":
         from app.models.admin import Admin
-        admin_payload = verify_admin_token(token)
-        if admin_payload:
-            admin_id_token = admin_payload.get("sub")
-            admin = db.query(Admin).filter(Admin.id == int(admin_id_token)).first()
-            if admin:
-                is_admin = True
-    
-    if not user or (db_post.author_id != user.id and not is_admin):
+        try:
+            admin_obj = db.query(Admin).filter(Admin.id == int(user_id)).first()
+            is_admin = admin_obj is not None
+        except (ValueError, TypeError):
+            is_admin = False
+
+    can_update = (db_post.post_type == "notice" and is_admin) or (user and (db_post.author_id == user.id or is_admin))
+    if not can_update:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to update this post"
@@ -694,34 +693,25 @@ async def delete_post(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid user ID in token"
         )
-    
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found"
-        )
-    
+
     # 작성자 확인 또는 관리자 권한 확인
-    is_admin = False
-    if db_post.post_type == "notice":
-        from app.core.admin_auth import verify_admin_token
+    is_admin = payload.get("role") == "admin"
+    if is_admin and db_post.post_type == "notice":
         from app.models.admin import Admin
-        admin_payload = verify_admin_token(token)
-        if admin_payload:
-            admin_id_token = admin_payload.get("sub")
-            admin = db.query(Admin).filter(Admin.id == int(admin_id_token)).first()
-            if admin:
-                is_admin = True
-        else:
-            # 일반 사용자 토큰인 경우, 이메일로 관리자 확인
-            admin = db.query(Admin).filter(Admin.email == user.email).first()
-            if admin:
-                is_admin = True
-    else:
-        # Notice가 아닌 경우, 작성자만 삭제 가능
-        pass
-    
-    if db_post.author_id != user.id and not is_admin:
+        try:
+            admin_obj = db.query(Admin).filter(Admin.id == int(user_id)).first()
+            is_admin = admin_obj is not None
+        except (ValueError, TypeError):
+            is_admin = False
+    elif user and db_post.post_type == "notice":
+        # 일반 사용자 토큰인 경우, 이메일로 관리자 확인
+        from app.models.admin import Admin
+        admin = db.query(Admin).filter(Admin.email == user.email).first()
+        if admin:
+            is_admin = True
+
+    can_delete = (db_post.post_type == "notice" and is_admin) or (user and (db_post.author_id == user.id or is_admin))
+    if not can_delete:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to delete this post"
