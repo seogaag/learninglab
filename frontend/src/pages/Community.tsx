@@ -9,6 +9,8 @@ const MAX_IMAGES = 3
 
 type BoardType = 'notice' | 'forum' | 'request' | 'all'
 
+type ImageItem = { serverUrl: string; blobUrl?: string }
+
 /** 게시글 이미지 URL을 표시용 절대 경로로 변환 */
 function getPostImageSrc(url: string): string {
   if (!url) return ''
@@ -948,8 +950,8 @@ const PostForm: React.FC<{
   useAuth()
   const [title, setTitle] = useState(editingPost?.title || '')
   const [content, setContent] = useState(editingPost?.content || '')
-  const [imageUrls, setImageUrls] = useState<string[]>(
-    editingPost?.image_urls?.slice(0, MAX_IMAGES) || (editingPost?.image_url ? [editingPost.image_url] : [])
+  const [imageItems, setImageItems] = useState<ImageItem[]>(
+    (editingPost?.image_urls?.slice(0, MAX_IMAGES) || (editingPost?.image_url ? [editingPost.image_url] : [])).map(url => ({ serverUrl: url }))
   )
   const [uploadingImage, setUploadingImage] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -968,34 +970,46 @@ const PostForm: React.FC<{
     if (editingPost) {
       setTitle(editingPost.title)
       setContent(editingPost.content)
-      setImageUrls(
-        editingPost.image_urls?.slice(0, MAX_IMAGES) || (editingPost.image_url ? [editingPost.image_url] : [])
+      setImageItems(
+        (editingPost.image_urls?.slice(0, MAX_IMAGES) || (editingPost.image_url ? [editingPost.image_url] : [])).map(url => ({ serverUrl: url }))
       )
     } else {
       setTitle('')
       setContent('')
-      setImageUrls([])
+      setImageItems([])
     }
   }, [editingPost])
 
+  const imageItemsRef = React.useRef<ImageItem[]>([])
+  imageItemsRef.current = imageItems
+  useEffect(() => () => {
+    imageItemsRef.current.forEach(item => { if (item.blobUrl) URL.revokeObjectURL(item.blobUrl) })
+  }, [])
+
   const uploadImageFiles = async (files: FileList | File[]) => {
     const arr = Array.from(files)
-    if (!arr.length || imageUrls.length >= MAX_IMAGES) return
-    const remaining = MAX_IMAGES - imageUrls.length
+    if (!arr.length || imageItems.length >= MAX_IMAGES) return
+    const remaining = MAX_IMAGES - imageItems.length
     const imageFiles = arr.filter(f => f.type.startsWith('image/')).slice(0, remaining)
     if (!imageFiles.length) return
     setUploadingImage(true)
-    try {
-      for (const file of imageFiles) {
+    for (const file of imageFiles) {
+      const blobUrl = URL.createObjectURL(file)
+      setImageItems(prev => [...prev, { serverUrl: '', blobUrl }].slice(0, MAX_IMAGES))
+      try {
         const { url } = await communityApi.uploadImage(file)
-        setImageUrls(prev => [...prev, url].slice(0, MAX_IMAGES))
+        setImageItems(prev => prev.map((item, i) =>
+          i === prev.length - 1 && item.blobUrl ? { serverUrl: url } : item
+        ))
+      } catch (err) {
+        console.error('Image upload failed:', err)
+        setImageItems(prev => prev.slice(0, -1))
+        alert('이미지 업로드에 실패했습니다.')
+      } finally {
+        URL.revokeObjectURL(blobUrl)
       }
-    } catch (err) {
-      console.error('Image upload failed:', err)
-      alert('이미지 업로드에 실패했습니다.')
-    } finally {
-      setUploadingImage(false)
     }
+    setUploadingImage(false)
   }
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1027,11 +1041,15 @@ const PostForm: React.FC<{
   }
 
   const removeImage = (idx: number) => {
-    setImageUrls(prev => prev.filter((_, i) => i !== idx))
+    setImageItems(prev => {
+      const item = prev[idx]
+      if (item?.blobUrl) URL.revokeObjectURL(item.blobUrl)
+      return prev.filter((_, i) => i !== idx)
+    })
   }
 
   const handlePasteImage = (e: React.ClipboardEvent) => {
-    if (imageUrls.length >= MAX_IMAGES) return
+    if (imageItems.length >= MAX_IMAGES) return
     const items = e.clipboardData?.items
     if (!items) return
     for (const item of Array.from(items)) {
@@ -1147,7 +1165,7 @@ const PostForm: React.FC<{
           content: content.trim(),
           tags: tags.length > 0 ? tags : undefined,
           mentions: mentions.length > 0 ? mentions : undefined,
-          image_urls: imageUrls.length > 0 ? imageUrls : undefined
+          image_urls: imageItems.filter(i => i.serverUrl).length > 0 ? imageItems.map(i => i.serverUrl).filter(Boolean) : undefined
         })
       } else {
         // 생성 모드
@@ -1157,7 +1175,7 @@ const PostForm: React.FC<{
           content: content.trim(),
           tags: tags.length > 0 ? tags : undefined,
           mentions: mentions.length > 0 ? mentions : undefined,
-          image_urls: imageUrls.length > 0 ? imageUrls : undefined
+          image_urls: imageItems.filter(i => i.serverUrl).length > 0 ? imageItems.map(i => i.serverUrl).filter(Boolean) : undefined
         }, adminToken)
       }
       onSuccess()
@@ -1174,7 +1192,7 @@ const PostForm: React.FC<{
       <h3>{editingPost ? 'Edit Post' : `New Post (${boardType.toUpperCase()})`}</h3>
       <div className="form-group form-notice-hub">
         <p className="hub-notice-text">
-          파일(이미지 외)은 <Link to="/hub">Hub</Link>에 업로드해 주세요.
+          Please use <Link to="/hub">Hub</Link> to share your files.
         </p>
       </div>
       <div className="form-group">
@@ -1355,12 +1373,12 @@ const PostForm: React.FC<{
       <div className="form-group">
         <label>Images (max {MAX_IMAGES})</label>
         <div
-          className={`image-drop-zone ${isDragging ? 'dragging' : ''} ${imageUrls.length >= MAX_IMAGES ? 'full' : ''}`}
+          className={`image-drop-zone ${isDragging ? 'dragging' : ''} ${imageItems.length >= MAX_IMAGES ? 'full' : ''}`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
-          {imageUrls.length < MAX_IMAGES && (
+          {imageItems.length < MAX_IMAGES && (
             <div className="image-upload-row">
               <input
                 type="file"
@@ -1375,12 +1393,12 @@ const PostForm: React.FC<{
               </span>
             </div>
           )}
-          {imageUrls.length > 0 && (
+          {imageItems.length > 0 && (
             <div className="post-form-images">
-              {imageUrls.map((url, idx) => (
+              {imageItems.map((item, idx) => (
                 <div key={idx} className="post-form-image-item">
                   <img
-                    src={getPostImageSrc(url)}
+                    src={item.blobUrl || getPostImageSrc(item.serverUrl)}
                     alt={`Preview ${idx + 1}`}
                   />
                   <button type="button" className="remove-image-btn" onClick={() => removeImage(idx)} title="Remove">
