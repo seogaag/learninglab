@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { publicApi, Banner } from '../services/api'
+import { publicApi, Banner, PinnedNotice } from '../services/api'
 import { getApiBase } from '../utils/apiBase'
 import './Home.css'
 
@@ -21,6 +21,7 @@ interface Testimonial {
 const Home: React.FC = () => {
   const navigate = useNavigate()
   const [banners, setBanners] = useState<Banner[]>([])
+  const [pinnedNotices, setPinnedNotices] = useState<PinnedNotice[]>([])
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0)
   const [projectImageIndices, setProjectImageIndices] = useState<number[]>([0, 0, 0, 0])
 
@@ -118,6 +119,7 @@ const Home: React.FC = () => {
 
   useEffect(() => {
     loadBanners()
+    loadPinnedNotices()
   }, [])
 
   useEffect(() => {
@@ -143,13 +145,18 @@ const Home: React.FC = () => {
   const loadBanners = async () => {
     try {
       const data = await publicApi.getBanners()
-      console.log('Loaded banners:', data)
       setBanners(data)
-      if (data.length > 0) {
-        console.log('First banner image URL:', data[0].image_url)
-      }
     } catch (err) {
       console.error('Error loading banners:', err)
+    }
+  }
+
+  const loadPinnedNotices = async () => {
+    try {
+      const data = await publicApi.getPinnedNotices()
+      setPinnedNotices(data || [])
+    } catch (err) {
+      console.error('Error loading pinned notices:', err)
     }
   }
 
@@ -246,7 +253,30 @@ const Home: React.FC = () => {
           </div>
         </section>
       )}
-      
+
+      {/* Pinned Notices (고정 공지) */}
+      {pinnedNotices.length > 0 && (
+        <section className="home-pinned-notices">
+          <div className="pinned-notices-inner">
+            {pinnedNotices.map((notice) => (
+              <div
+                key={notice.id}
+                className="pinned-notice-card"
+                onClick={() => navigate(`/community?post=${notice.id}`)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === 'Enter' && navigate(`/community?post=${notice.id}`)}
+              >
+                <span className="pinned-notice-badge">📌</span>
+                <div className="pinned-notice-content">
+                  <h3 className="pinned-notice-title">{notice.title}</h3>
+                  <p className="pinned-notice-text">{notice.content}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Working Together Section */}
       <div className="working-together-section">

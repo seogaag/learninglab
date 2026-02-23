@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+from sqlalchemy import desc
 from app.db.database import get_db
 from app.models.banner import Banner
 from app.models.workspace_course import WorkspaceCourse
+from app.models.post import Post
 from app.schemas.workspace_course import WorkspaceCourseResponse
 from typing import List
 
@@ -79,6 +81,24 @@ async def get_public_workspace_courses(db: Session = Depends(get_db)):
         })
     
     print(f"[PUBLIC API] Returning {len(result)} workspace courses")
-    for course in result:
-        print(f"[PUBLIC API] Course: {course['name']}, image_url: {course['image_url']}")
+    return result
+
+
+@router.get("/pinned-notices")
+async def get_pinned_notices(db: Session = Depends(get_db)):
+    """고정된 Notice 게시글 목록 조회 (메인 페이지 배너 밑 노출용)"""
+    posts = db.query(Post).filter(
+        Post.post_type == "notice",
+        Post.is_pinned == True
+    ).order_by(desc(Post.created_at)).limit(10).all()
+
+    result = []
+    for p in posts:
+        content = p.content or ""
+        result.append({
+            "id": p.id,
+            "title": p.title,
+            "content": content[:200] + "..." if len(content) > 200 else content,
+            "created_at": p.created_at,
+        })
     return result

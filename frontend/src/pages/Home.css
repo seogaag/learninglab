@@ -33,6 +33,67 @@
   background-color: #f0f0f0;
 }
 
+/* ========== 고정 공지 (배너 밑) ========== */
+.home-pinned-notices {
+  width: 100%;
+  padding: 1.5rem 2rem;
+  background: #FFF9E6;
+  border-bottom: 1px solid #E9EADE;
+}
+
+.pinned-notices-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pinned-notice-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #E9EADE;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pinned-notice-card:hover {
+  border-color: #89A230;
+  box-shadow: 0 2px 8px rgba(137, 162, 48, 0.15);
+}
+
+.pinned-notice-badge {
+  flex-shrink: 0;
+  font-size: 1.1rem;
+}
+
+.pinned-notice-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.pinned-notice-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #57463D;
+  margin: 0 0 0.25rem;
+}
+
+.pinned-notice-text {
+  font-size: 0.9rem;
+  color: #685A55;
+  margin: 0;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .hero-carousel-text {
   position: absolute;
   left: 3rem;

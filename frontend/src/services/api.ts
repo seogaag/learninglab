@@ -150,9 +150,20 @@ export interface Banner {
   is_active: boolean
 }
 
+export interface PinnedNotice {
+  id: number
+  title: string
+  content: string
+  created_at: string
+}
+
 export const publicApi = {
   getBanners: async (): Promise<Banner[]> => {
     const response = await apiClient.get('/public/banners')
+    return response.data
+  },
+  getPinnedNotices: async (): Promise<PinnedNotice[]> => {
+    const response = await apiClient.get('/public/pinned-notices')
     return response.data
   },
 }
