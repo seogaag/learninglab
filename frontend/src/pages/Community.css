@@ -389,16 +389,17 @@
   box-shadow: 0 2px 8px rgba(137, 162, 48, 0.2);
 }
 
+.post-card.notice-post,
 .post-card.notice-pinned {
-  background: #FFF9E6;
-  border-color: #FFD700;
-  border-width: 2px;
+  background: #ffffff;
+  border: 2px solid #FFD55B;
 }
 
+.post-card.notice-post:hover,
 .post-card.notice-pinned:hover {
-  border-color: #FFA500;
-  box-shadow: 0 2px 8px rgba(255, 165, 0, 0.3);
-  background: #FFFBF0;
+  border-color: #FFD55B;
+  box-shadow: 0 2px 8px rgba(255, 213, 91, 0.4);
+  background: #ffffff;
 }
 
 .post-card.request-resolved {

@@ -54,15 +54,15 @@
   align-items: flex-start;
   gap: 0.75rem;
   padding: 1rem 1.25rem;
-  background: white;
+  background: #ffffff;
   border-radius: 8px;
-  border: 1px solid #E9EADE;
+  border: 2px solid #FFD55B;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .pinned-notice-card:hover {
-  border-color: #89A230;
+  border-color: #FFD55B;
   box-shadow: 0 2px 8px rgba(137, 162, 48, 0.15);
 }
 

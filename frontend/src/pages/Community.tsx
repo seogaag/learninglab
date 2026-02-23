@@ -554,7 +554,7 @@ const Community: React.FC = () => {
                     })().map((post) => (
                       <div
                         key={post.id}
-                        className={`post-card ${post.post_type === 'notice' && post.is_pinned ? 'notice-pinned' : ''} ${post.post_type === 'request' && post.is_resolved ? 'request-resolved' : ''}`}
+                        className={`post-card ${post.post_type === 'notice' ? 'notice-post' : ''} ${post.post_type === 'notice' && post.is_pinned ? 'notice-pinned' : ''} ${post.post_type === 'request' && post.is_resolved ? 'request-resolved' : ''}`}
                         onClick={() => handlePostClick(post)}
                       >
                         <div className="post-card-header">
@@ -846,7 +846,7 @@ const Community: React.FC = () => {
                           {posts.map((post) => (
                             <div
                               key={post.id}
-                              className={`post-card ${post.post_type === 'notice' && post.is_pinned ? 'notice-pinned' : ''} ${post.post_type === 'request' && post.is_resolved ? 'request-resolved' : ''}`}
+                              className={`post-card ${post.post_type === 'notice' ? 'notice-post' : ''} ${post.post_type === 'notice' && post.is_pinned ? 'notice-pinned' : ''} ${post.post_type === 'request' && post.is_resolved ? 'request-resolved' : ''}`}
                               onClick={() => handlePostClick(post)}
                             >
                               <div className="post-card-header">
