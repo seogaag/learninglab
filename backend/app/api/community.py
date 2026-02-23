@@ -339,93 +339,64 @@ async def create_post(
     db: Session = Depends(get_db)
 ):
     """게시글 생성"""
-    # JWT 토큰 검증
     from app.core.security import verify_token
+    from app.models.admin import Admin
+
     payload = verify_token(token)
     if not payload:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token"
         )
-    
-    user_id = payload.get("sub")
-    if not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token payload"
-        )
-    
-    try:
-        user_id_int = int(user_id)
-        user = db.query(User).filter(User.id == user_id_int).first()
-    except (ValueError, TypeError):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid user ID in token"
-        )
-    
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found"
-        )
-    
-    # Notice는 관리자만 작성 가능
-    author_email = user.email
-    author_name = user.name
-    author_id = user.id
-    
-    if post.post_type == "notice":
-        from app.core.admin_auth import verify_admin_token
-        from app.models.admin import Admin
-        # 토큰이 관리자 토큰인지 확인
-        admin_payload = verify_admin_token(token)
-        print(f"[NOTICE CREATE] Admin payload: {admin_payload}")
-        if admin_payload:
-            # 관리자 토큰인 경우, 관리자 정보 사용
-            admin_id_token = admin_payload.get("sub")
-            print(f"[NOTICE CREATE] Admin ID from token: {admin_id_token}")
-            admin = db.query(Admin).filter(Admin.id == int(admin_id_token)).first()
-            if not admin:
-                print(f"[NOTICE CREATE] Admin not found for ID: {admin_id_token}")
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Admin not found"
-                )
-            print(f"[NOTICE CREATE] Found admin: {admin.username}, email: {admin.email}")
-            # 관리자 이메일로 사용자 찾기
-            admin_user = db.query(User).filter(User.email == admin.email).first()
-            if admin_user:
-                author_id = admin_user.id
-                author_email = admin_user.email
-                author_name = "Global Partnership Center"  # 관리자가 작성한 Notice는 항상 'Global Partnership Center'로 표시
-                print(f"[NOTICE CREATE] Using admin user: {author_email}")
-            else:
-                # 관리자 이메일로 사용자가 없으면 관리자 정보 사용
-                # 관리자 이메일이 없으면 사용자명을 기반으로 이메일 생성
-                if admin.email:
-                    author_email = admin.email
-                else:
-                    # 관리자 이메일이 없으면 기본 이메일 형식 사용
-                    author_email = f"{admin.username}@admin.local"
-                author_name = "Global Partnership Center"  # 관리자가 작성한 Notice는 항상 'Global Partnership Center'로 표시
-                # 기존 사용자 ID 사용 (또는 관리자용 더미 사용자 생성)
-                author_id = user.id
-                print(f"[NOTICE CREATE] Using admin info directly: {author_email}")
+
+    author_email = None
+    author_name = None
+    author_id = None
+    user = None
+
+    # Notice + admin token: admin token의 sub는 Admin ID이므로 User 조회 생략
+    is_admin = payload.get("role") == "admin"
+    if post.post_type == "notice" and is_admin:
+        admin_id_token = payload.get("sub")
+        admin = db.query(Admin).filter(Admin.id == int(admin_id_token)).first()
+        if not admin:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin not found")
+        author_name = "Global Partnership Center"
+        author_email = admin.email or f"{admin.username}@admin.local"
+        admin_user = db.query(User).filter(User.email == admin.email).first() if admin.email else None
+        if admin_user:
+            author_id = admin_user.id
         else:
-            # 일반 사용자 토큰인 경우, 이메일로 관리자 확인
-            print(f"[NOTICE CREATE] Not admin token, checking user email: {user.email}")
+            fallback = db.query(User).order_by(User.id.asc()).first()
+            if not fallback:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="No user exists. At least one user must sign in before creating notices."
+                )
+            author_id = fallback.id
+    else:
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
+        try:
+            user_id_int = int(user_id)
+            user = db.query(User).filter(User.id == user_id_int).first()
+        except (ValueError, TypeError):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid user ID in token")
+        if not user:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+        author_email = user.email
+        author_name = user.name
+        author_id = user.id
+        if post.post_type == "notice":
             admin = db.query(Admin).filter(Admin.email == user.email).first()
             if not admin:
-                print(f"[NOTICE CREATE] User {user.email} is not an admin")
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Only admins can create notice posts"
                 )
-            print(f"[NOTICE CREATE] User {user.email} is an admin")
-            # 관리자가 작성한 Notice는 항상 'Global Partnership Center'로 표시
             author_name = "Global Partnership Center"
-    
+
     # 이미지 URL 처리 (최대 3개)
     urls = (post.image_urls or [])[:3]
     if post.image_url and not urls:
