@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
+from datetime import date
 
 class WorkspaceCourseCreate(BaseModel):
     name: str
@@ -9,6 +10,7 @@ class WorkspaceCourseCreate(BaseModel):
     alternate_link: Optional[str] = None
     course_state: str = 'ACTIVE'
     organization: Optional[str] = None
+    start_date: Optional[date] = None
     order: int = 0
     is_active: bool = True
 
@@ -20,6 +22,7 @@ class WorkspaceCourseUpdate(BaseModel):
     alternate_link: Optional[str] = None
     course_state: Optional[str] = None
     organization: Optional[str] = None
+    start_date: Optional[date] = None
     order: Optional[int] = None
     is_active: Optional[bool] = None
 
@@ -32,6 +35,7 @@ class WorkspaceCourseResponse(BaseModel):
     alternate_link: Optional[str] = None
     course_state: str
     organization: Optional[str] = None
+    start_date: Optional[date] = None
     order: int
     is_active: bool
     

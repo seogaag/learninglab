@@ -40,6 +40,7 @@ export interface WorkspaceCourse {
   alternate_link?: string
   course_state: string
   organization?: string
+  start_date?: string
   order: number
   is_active: boolean
 }

@@ -42,7 +42,10 @@ async def get_public_workspace_courses(db: Session = Depends(get_db)):
     """공개 워크스페이스 클래스 목록 조회 (활성화된 것만)"""
     courses = db.query(WorkspaceCourse).filter(
         WorkspaceCourse.is_active == True
-    ).order_by(WorkspaceCourse.order.asc()).all()
+    ).order_by(
+        WorkspaceCourse.start_date.desc().nullslast(),
+        WorkspaceCourse.order.asc()
+    ).all()
     
     from urllib.parse import quote
     
@@ -64,7 +67,8 @@ async def get_public_workspace_courses(db: Session = Depends(get_db)):
             "courseState": course.course_state,
             "alternateLink": course.alternate_link,
             "image_url": image_url,
-            "organization": course.organization
+            "organization": course.organization,
+            "start_date": course.start_date.isoformat() if course.start_date else None,
         })
     
     print(f"[PUBLIC API] Returning {len(result)} workspace courses")

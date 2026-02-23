@@ -19,7 +19,10 @@ async def get_workspace_courses_admin(
     db: Session = Depends(get_db)
 ):
     """워크스페이스 클래스 목록 조회 (관리자)"""
-    courses = db.query(WorkspaceCourse).order_by(WorkspaceCourse.order.asc()).all()
+    courses = db.query(WorkspaceCourse).order_by(
+        WorkspaceCourse.start_date.desc().nullslast(),
+        WorkspaceCourse.order.asc()
+    ).all()
     return courses
 
 @router.post("", response_model=WorkspaceCourseResponse)

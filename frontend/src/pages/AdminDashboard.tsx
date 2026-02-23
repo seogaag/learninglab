@@ -615,6 +615,7 @@ const CourseForm: React.FC<{
     alternate_link: course?.alternate_link || '',
     course_state: course?.course_state || 'ACTIVE',
     organization: course?.organization || '',
+    start_date: course?.start_date || '',
     order: course?.order || 0,
     is_active: course?.is_active ?? true,
   })
@@ -649,7 +650,9 @@ const CourseForm: React.FC<{
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onSubmit(formData)
+    const payload = { ...formData }
+    if (payload.start_date === '') delete payload.start_date
+    onSubmit(payload)
   }
 
   return (
@@ -720,6 +723,17 @@ const CourseForm: React.FC<{
           value={formData.organization || ''}
           onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
         />
+      </div>
+      <div className="form-group">
+        <label>시작 날짜</label>
+        <input
+          type="date"
+          value={formData.start_date || ''}
+          onChange={(e) => setFormData({ ...formData, start_date: e.target.value || undefined })}
+        />
+        <small style={{ color: '#685A55', fontSize: '0.85rem', marginTop: '0.25rem', display: 'block' }}>
+          비어있으면 목록 맨 뒤에 표시됩니다
+        </small>
       </div>
       <div className="form-group">
         <label>순서</label>
