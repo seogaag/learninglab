@@ -264,6 +264,7 @@ export const communityApi = {
     tags?: string[]
     mentions?: string[]
     image_urls?: string[]
+    is_pinned?: boolean
   }, adminToken?: string): Promise<Post> => {
     // Notice인 경우 관리자 토큰 사용, 그 외에는 일반 사용자 토큰 사용
     const token = adminToken || getAuthToken()
