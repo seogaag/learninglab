@@ -55,6 +55,15 @@ function getPostImageSrc(url: string): string {
   return raw
 }
 
+/** Notice(Global Partnership Center) 클릭 시 복사할 이메일 */
+const NOTICE_COPY_EMAIL = 'communications@goodneighbors.org'
+function getEmailToCopy(post: { post_type?: string; author_name?: string; author_email: string }): string {
+  if (post.post_type === 'notice' || post.author_name === 'Global Partnership Center') {
+    return NOTICE_COPY_EMAIL
+  }
+  return post.author_email
+}
+
 const Community: React.FC = () => {
   const { user, token, login } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -689,7 +698,7 @@ const Community: React.FC = () => {
                       className="author-name-clickable"
                       onClick={(e) => {
                         e.stopPropagation()
-                        navigator.clipboard.writeText(selectedPost.author_email)
+                        navigator.clipboard.writeText(getEmailToCopy(selectedPost))
                         const toast = document.createElement('div')
                         toast.textContent = 'Mail Address Copied!'
                         toast.style.cssText = 'position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #89A230; color: white; padding: 8px 16px; border-radius: 4px; z-index: 10000; font-weight: 400; font-size: 0.875rem; box-shadow: 0 2px 8px rgba(0,0,0,0.15); animation: fadeInOut 2s;'
@@ -916,7 +925,7 @@ const Community: React.FC = () => {
                                   className="author-name-clickable"
                                   onClick={(e) => {
                                     e.stopPropagation()
-                                    navigator.clipboard.writeText(post.author_email)
+                                    navigator.clipboard.writeText(getEmailToCopy(post))
                                     const toast = document.createElement('div')
                                     toast.textContent = 'Mail Address Copied!'
                                     toast.style.cssText = 'position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #89A230; color: white; padding: 8px 16px; border-radius: 4px; z-index: 10000; font-weight: 400; font-size: 0.875rem; box-shadow: 0 2px 8px rgba(0,0,0,0.15); animation: fadeInOut 2s;'

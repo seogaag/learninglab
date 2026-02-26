@@ -349,11 +349,19 @@ const AdminDashboard: React.FC = () => {
                       return
                     }
                     if (editingNotice) {
-                      await communityApi.updatePost(editingNotice.id, notice, adminToken)
+                      await communityApi.updatePost(editingNotice.id, {
+                        title: notice.title,
+                        content: notice.content,
+                        is_pinned: notice.is_pinned,
+                        image_urls: notice.image_urls,
+                      }, adminToken)
                     } else {
                       await communityApi.createPost({
                         post_type: 'notice',
-                        ...notice
+                        title: notice.title,
+                        content: notice.content,
+                        is_pinned: notice.is_pinned,
+                        image_urls: notice.image_urls,
                       }, adminToken)
                     }
                     setShowNoticeForm(false)
@@ -413,10 +421,12 @@ const AdminDashboard: React.FC = () => {
   )
 }
 
+const MAX_NOTICE_IMAGES = 3
+
 // Notice Form Component
 const NoticeForm: React.FC<{
   notice: Post | null
-  onSubmit: (notice: { title: string; content: string; is_pinned?: boolean }) => void
+  onSubmit: (notice: { title: string; content: string; is_pinned?: boolean; image_urls?: string[] }) => void
   onCancel: () => void
 }> = ({ notice, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -424,6 +434,11 @@ const NoticeForm: React.FC<{
     content: notice?.content || '',
     is_pinned: notice?.is_pinned || false,
   })
+  const [imageUrls, setImageUrls] = useState<string[]>(
+    notice?.image_urls?.length ? notice.image_urls.slice(0, MAX_NOTICE_IMAGES) : notice?.image_url ? [notice.image_url] : []
+  )
+  const [uploading, setUploading] = useState(false)
+  const noticeImageInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (notice) {
@@ -432,18 +447,56 @@ const NoticeForm: React.FC<{
         content: notice.content,
         is_pinned: notice.is_pinned || false,
       })
+      setImageUrls(notice.image_urls?.length ? notice.image_urls.slice(0, MAX_NOTICE_IMAGES) : notice.image_url ? [notice.image_url] : [])
     } else {
-      setFormData({
-        title: '',
-        content: '',
-        is_pinned: false,
-      })
+      setFormData({ title: '', content: '', is_pinned: false })
+      setImageUrls([])
     }
   }, [notice])
 
+  const handleNoticeImageUpload = async (file: File) => {
+    if (imageUrls.length >= MAX_NOTICE_IMAGES) {
+      alert(`이미지는 최대 ${MAX_NOTICE_IMAGES}장까지 첨부할 수 있습니다.`)
+      return
+    }
+    const maxSize = 5 * 1024 * 1024
+    if (file.size > maxSize) {
+      alert('이미지 크기는 5MB를 초과할 수 없습니다.')
+      return
+    }
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      alert('PNG, JPEG, JPG, GIF, WebP 형식만 가능합니다.')
+      return
+    }
+    const adminToken = localStorage.getItem('admin_token')
+    if (!adminToken) {
+      alert('관리자 토큰이 없습니다.')
+      return
+    }
+    setUploading(true)
+    try {
+      const result = await communityApi.uploadImage(file, adminToken)
+      setImageUrls((prev) => [...prev, result.url].slice(0, MAX_NOTICE_IMAGES))
+    } catch (err: any) {
+      console.error('Notice image upload error:', err)
+      alert(err.response?.data?.detail || '이미지 업로드에 실패했습니다.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const removeNoticeImage = (index: number) => {
+    setImageUrls((prev) => prev.filter((_, i) => i !== index))
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onSubmit(formData)
+    onSubmit({ ...formData, image_urls: imageUrls.length > 0 ? imageUrls : undefined })
+  }
+
+  const getImageDisplayUrl = (url: string) => {
+    if (url.startsWith('http')) return url
+    return `${API_URL}${url}`
   }
 
   return (
@@ -465,6 +518,40 @@ const NoticeForm: React.FC<{
           required
           rows={10}
         />
+      </div>
+      <div className="form-group">
+        <label>이미지 (최대 {MAX_NOTICE_IMAGES}장)</label>
+        <input
+          ref={noticeImageInputRef}
+          type="file"
+          accept={ALLOWED_IMAGE_TYPES.join(',')}
+          style={{ display: 'none' }}
+          onChange={(e) => {
+            const file = e.target.files?.[0]
+            if (file) handleNoticeImageUpload(file)
+            e.target.value = ''
+          }}
+        />
+        {imageUrls.length < MAX_NOTICE_IMAGES && (
+          <button
+            type="button"
+            className="admin-form-image-add"
+            onClick={() => noticeImageInputRef.current?.click()}
+            disabled={uploading}
+          >
+            {uploading ? '업로드 중...' : '+ 이미지 추가'}
+          </button>
+        )}
+        {imageUrls.length > 0 && (
+          <div className="admin-form-image-list">
+            {imageUrls.map((url, idx) => (
+              <div key={idx} className="admin-form-image-item">
+                <img src={getImageDisplayUrl(url)} alt="" />
+                <button type="button" className="admin-form-image-remove" onClick={() => removeNoticeImage(idx)} aria-label="삭제">×</button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
       <div className="form-group">
         <label>

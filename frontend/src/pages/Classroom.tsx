@@ -178,6 +178,10 @@ const Classroom: React.FC = () => {
   return (
     <div className="classroom">
       <div className="classroom-grid">
+        <div className="sidebar-left">
+          <h2 className="sidebar-title">Today's Focus</h2>
+          <CalendarSidebar />
+        </div>
         <div className="main-content-area">
           <h2 className="section-title">Learning</h2>
           <div className="tabs">
@@ -453,11 +457,6 @@ const Classroom: React.FC = () => {
                   )}
                 </div>
           )}
-        </div>
-
-        <div className="sidebar-right">
-          <h2 className="sidebar-title">Today's Focus</h2>
-          <CalendarSidebar />
         </div>
       </div>
     </div>
