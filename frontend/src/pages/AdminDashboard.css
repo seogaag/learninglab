@@ -238,9 +238,9 @@
 }
 
 .admin-form-image-item {
-  position: relative;
-  width: 120px;
-  height: 120px;
+  display: flex;
+  flex-direction: column;
+  width: 140px;
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid #E9EADE;
@@ -249,14 +249,34 @@
 
 .admin-form-image-item img {
   width: 100%;
-  height: 100%;
+  height: 120px;
   object-fit: cover;
 }
 
+.admin-form-image-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  flex-wrap: wrap;
+}
+
+.admin-form-image-size-label {
+  font-size: 0.75rem;
+  color: #685A55;
+}
+
+.admin-form-image-size-select {
+  padding: 0.2rem 0.4rem;
+  border: 1px solid #E9EADE;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  background: #fff;
+  flex: 1;
+  min-width: 0;
+}
+
 .admin-form-image-remove {
-  position: absolute;
-  top: 4px;
-  right: 4px;
   width: 24px;
   height: 24px;
   border: none;
@@ -271,6 +291,7 @@
   justify-content: center;
   padding: 0;
   transition: background 0.2s;
+  flex-shrink: 0;
 }
 
 .admin-form-image-remove:hover {

@@ -9,7 +9,8 @@ const MAX_IMAGES = 3
 
 type BoardType = 'notice' | 'forum' | 'request' | 'all'
 
-type ImageItem = { serverUrl: string; id?: string }
+export type ImageSizeOption = 'full' | 'original' | 'small'
+type ImageItem = { serverUrl: string; id?: string; size?: ImageSizeOption }
 
 /** Parse URL that may be JSON array string (backend legacy) */
 function parseImageUrl(url: string): string {
@@ -748,12 +749,13 @@ const Community: React.FC = () => {
                   <div className="post-images-container">
                     {(selectedPost.image_urls || (selectedPost.image_url ? [selectedPost.image_url] : [])).slice(0, MAX_IMAGES).map((url, idx) => {
                       const src = getPostImageSrc(url)
+                      const size = selectedPost.image_sizes?.[idx] || 'full'
                       return (
-                        <div key={idx} className="post-image-container post-image-clickable">
+                        <div key={idx} className={`post-image-container post-image-clickable post-image--${size}`}>
                           <img
                             src={src}
                             alt={`Post attachment ${idx + 1}`}
-                            className="post-image"
+                            className={`post-image post-image--${size}`}
                             onClick={(e) => { e.stopPropagation(); setImageLightboxUrl(src) }}
                             role="button"
                             tabIndex={0}
@@ -1044,7 +1046,10 @@ const PostForm: React.FC<{
   const [title, setTitle] = useState(editingPost?.title || '')
   const [content, setContent] = useState(editingPost?.content || '')
   const [imageItems, setImageItems] = useState<ImageItem[]>(
-    (editingPost?.image_urls?.slice(0, MAX_IMAGES) || (editingPost?.image_url ? [editingPost.image_url] : [])).map(url => ({ serverUrl: url }))
+    (editingPost?.image_urls?.slice(0, MAX_IMAGES) || (editingPost?.image_url ? [editingPost.image_url] : [])).map((url, idx) => ({
+      serverUrl: url,
+      size: (editingPost?.image_sizes?.[idx] as ImageSizeOption) || 'full',
+    }))
   )
   const blobUrlsRef = React.useRef<Map<string, string>>(new Map())
   const [uploadingImage, setUploadingImage] = useState(false)
@@ -1067,7 +1072,10 @@ const PostForm: React.FC<{
       blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url))
       blobUrlsRef.current.clear()
       setImageItems(
-        (editingPost.image_urls?.slice(0, MAX_IMAGES) || (editingPost.image_url ? [editingPost.image_url] : [])).map(url => ({ serverUrl: url }))
+        (editingPost.image_urls?.slice(0, MAX_IMAGES) || (editingPost.image_url ? [editingPost.image_url] : [])).map((url, idx) => ({
+          serverUrl: url,
+          size: (editingPost.image_sizes?.[idx] as ImageSizeOption) || 'full',
+        }))
       )
     } else {
       setTitle('')
@@ -1145,6 +1153,10 @@ const PostForm: React.FC<{
     const files = e.dataTransfer?.files
     if (!files?.length) return
     uploadImageFiles(files)
+  }
+
+  const setImageSize = (idx: number, size: ImageSizeOption) => {
+    setImageItems(prev => prev.map((item, i) => (i === idx ? { ...item, size } : item)))
   }
 
   const removeImage = (idx: number) => {
@@ -1284,7 +1296,8 @@ const PostForm: React.FC<{
           content: content.trim(),
           tags: tags.length > 0 ? tags : undefined,
           mentions: mentions.length > 0 ? mentions : undefined,
-          image_urls: imageItems.map(i => i.serverUrl).filter(Boolean)
+          image_urls: imageItems.map(i => i.serverUrl).filter(Boolean),
+          image_sizes: imageItems.map(i => i.size || 'full').filter((_, i) => imageItems[i]?.serverUrl),
         })
       } else {
         // Create mode
@@ -1294,7 +1307,8 @@ const PostForm: React.FC<{
           content: content.trim(),
           tags: tags.length > 0 ? tags : undefined,
           mentions: mentions.length > 0 ? mentions : undefined,
-          image_urls: imageItems.map(i => i.serverUrl).filter(Boolean)
+          image_urls: imageItems.map(i => i.serverUrl).filter(Boolean),
+          image_sizes: imageItems.map(i => i.size || 'full').filter((_, i) => imageItems[i]?.serverUrl),
         }, adminToken)
       }
       onSuccess()
@@ -1323,7 +1337,7 @@ const PostForm: React.FC<{
           placeholder="Enter title"
         />
       </div>
-      <div className="form-group" style={{ position: 'relative' }}>
+      <div className="form-group form-group-content-with-images" style={{ position: 'relative' }}>
         <label>Content *</label>
         <textarea
           ref={textareaRef}
@@ -1488,48 +1502,61 @@ const PostForm: React.FC<{
             )}
           </div>
         )}
-      </div>
-      <div className="form-group">
-        <label>Images (max {MAX_IMAGES})</label>
-        <div
-          className={`image-drop-zone ${isDragging ? 'dragging' : ''} ${imageItems.length >= MAX_IMAGES ? 'full' : ''}`}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onPaste={handlePasteImage}
-          tabIndex={0}
-          title="Click here then paste (Ctrl+V) - paste may not work in all browsers"
-        >
-          {imageItems.length < MAX_IMAGES && (
-            <div className="image-upload-row">
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleImageUpload}
-                disabled={uploadingImage}
-                className="image-upload-input"
-              />
-              <span className="image-upload-hint">
-                {uploadingImage ? 'Uploading...' : 'Drag & drop, paste (Ctrl+V in this area), or click to add files. Paste may not work in all browsers.'}
-              </span>
-            </div>
-          )}
-          {imageItems.length > 0 && (
-            <div className="post-form-images">
-              {imageItems.map((item, idx) => (
-                <div key={item.id || item.serverUrl || idx} className="post-form-image-item">
-                  <img
-                    src={(item.id && blobUrlsRef.current.get(item.id)) || getPostImageSrc(item.serverUrl)}
-                    alt={`Preview ${idx + 1}`}
-                  />
-                  <button type="button" className="remove-image-btn" onClick={() => removeImage(idx)} title="Remove">
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
+        <div className="form-group images-in-content">
+          <label>Images (max {MAX_IMAGES}) — 크기 조정</label>
+          <div
+            className={`image-drop-zone ${isDragging ? 'dragging' : ''} ${imageItems.length >= MAX_IMAGES ? 'full' : ''}`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onPaste={handlePasteImage}
+            tabIndex={0}
+            title="Click here then paste (Ctrl+V) - paste may not work in all browsers"
+          >
+            {imageItems.length < MAX_IMAGES && (
+              <div className="image-upload-row">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageUpload}
+                  disabled={uploadingImage}
+                  className="image-upload-input"
+                />
+                <span className="image-upload-hint">
+                  {uploadingImage ? 'Uploading...' : 'Drag & drop, paste (Ctrl+V in this area), or click to add files. Paste may not work in all browsers.'}
+                </span>
+              </div>
+            )}
+            {imageItems.length > 0 && (
+              <div className="post-form-images">
+                {imageItems.map((item, idx) => (
+                  <div key={item.id || item.serverUrl || idx} className="post-form-image-item">
+                    <img
+                      src={(item.id && blobUrlsRef.current.get(item.id)) || getPostImageSrc(item.serverUrl)}
+                      alt={`Preview ${idx + 1}`}
+                    />
+                    <div className="post-form-image-controls">
+                      <span className="image-size-label">크기:</span>
+                      <select
+                        value={item.size || 'full'}
+                        onChange={(e) => setImageSize(idx, e.target.value as ImageSizeOption)}
+                        className="image-size-select"
+                        title="Image size"
+                      >
+                        <option value="full">전체 너비</option>
+                        <option value="original">원본</option>
+                        <option value="small">작게</option>
+                      </select>
+                      <button type="button" className="remove-image-btn" onClick={() => removeImage(idx)} title="Remove">
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
       {boardType === 'notice' && showPasswordInput && (

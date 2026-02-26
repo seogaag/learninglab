@@ -1242,6 +1242,59 @@
   opacity: 0.9;
 }
 
+/* 게시글 이미지 크기 옵션 (작성 칸 내 조정 반영) */
+.post-images-container .post-image--full,
+.post-images-container .post-image-container.post-image--full .post-image {
+  width: 100%;
+  max-width: 100%;
+}
+.post-images-container .post-image--original,
+.post-images-container .post-image-container.post-image--original .post-image {
+  width: auto;
+  max-width: 100%;
+  margin: 0 auto;
+  display: block;
+}
+.post-images-container .post-image--small,
+.post-images-container .post-image-container.post-image--small .post-image {
+  width: auto;
+  max-width: min(50%, 320px);
+  margin: 0 auto;
+  display: block;
+}
+
+/* 작성 폼: 내용 칸 내 이미지 + 크기 조정 */
+.form-group-content-with-images .images-in-content {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #E9EADE;
+}
+.post-form-image-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.post-form-image-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.post-form-image-controls .image-size-label {
+  font-size: 0.875rem;
+  color: #685A55;
+}
+.post-form-image-controls .image-size-select {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #E9EADE;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  background: #fff;
+}
+.post-form-image-controls .remove-image-btn {
+  margin-left: auto;
+}
+
 /* 이미지 라이트박스 (크게 보기) */
 .image-lightbox-overlay {
   position: fixed;

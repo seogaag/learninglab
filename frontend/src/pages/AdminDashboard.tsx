@@ -354,6 +354,7 @@ const AdminDashboard: React.FC = () => {
                         content: notice.content,
                         is_pinned: notice.is_pinned,
                         image_urls: notice.image_urls,
+                        image_sizes: notice.image_sizes,
                       }, adminToken)
                     } else {
                       await communityApi.createPost({
@@ -362,6 +363,7 @@ const AdminDashboard: React.FC = () => {
                         content: notice.content,
                         is_pinned: notice.is_pinned,
                         image_urls: notice.image_urls,
+                        image_sizes: notice.image_sizes,
                       }, adminToken)
                     }
                     setShowNoticeForm(false)
@@ -424,9 +426,11 @@ const AdminDashboard: React.FC = () => {
 const MAX_NOTICE_IMAGES = 3
 
 // Notice Form Component
+type ImageSizeOption = 'full' | 'original' | 'small'
+
 const NoticeForm: React.FC<{
   notice: Post | null
-  onSubmit: (notice: { title: string; content: string; is_pinned?: boolean; image_urls?: string[] }) => void
+  onSubmit: (notice: { title: string; content: string; is_pinned?: boolean; image_urls?: string[]; image_sizes?: string[] }) => void
   onCancel: () => void
 }> = ({ notice, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -437,6 +441,10 @@ const NoticeForm: React.FC<{
   const [imageUrls, setImageUrls] = useState<string[]>(
     notice?.image_urls?.length ? notice.image_urls.slice(0, MAX_NOTICE_IMAGES) : notice?.image_url ? [notice.image_url] : []
   )
+  const [imageSizes, setImageSizes] = useState<ImageSizeOption[]>(() => {
+    const urls = notice?.image_urls?.length ? notice.image_urls.slice(0, MAX_NOTICE_IMAGES) : notice?.image_url ? [notice.image_url] : []
+    return urls.map((_, i) => (notice?.image_sizes?.[i] as ImageSizeOption) || 'full')
+  })
   const [uploading, setUploading] = useState(false)
   const noticeImageInputRef = useRef<HTMLInputElement>(null)
 
@@ -447,10 +455,13 @@ const NoticeForm: React.FC<{
         content: notice.content,
         is_pinned: notice.is_pinned || false,
       })
-      setImageUrls(notice.image_urls?.length ? notice.image_urls.slice(0, MAX_NOTICE_IMAGES) : notice.image_url ? [notice.image_url] : [])
+      const urls = notice.image_urls?.length ? notice.image_urls.slice(0, MAX_NOTICE_IMAGES) : notice.image_url ? [notice.image_url] : []
+      setImageUrls(urls)
+      setImageSizes(urls.map((_, i) => (notice.image_sizes?.[i] as ImageSizeOption) || 'full'))
     } else {
       setFormData({ title: '', content: '', is_pinned: false })
       setImageUrls([])
+      setImageSizes([])
     }
   }, [notice])
 
@@ -477,6 +488,7 @@ const NoticeForm: React.FC<{
     try {
       const result = await communityApi.uploadImage(file, adminToken)
       setImageUrls((prev) => [...prev, result.url].slice(0, MAX_NOTICE_IMAGES))
+      setImageSizes((prev) => [...prev, 'full'].slice(0, MAX_NOTICE_IMAGES))
     } catch (err: any) {
       console.error('Notice image upload error:', err)
       alert(err.response?.data?.detail || '이미지 업로드에 실패했습니다.')
@@ -487,11 +499,20 @@ const NoticeForm: React.FC<{
 
   const removeNoticeImage = (index: number) => {
     setImageUrls((prev) => prev.filter((_, i) => i !== index))
+    setImageSizes((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const setNoticeImageSize = (index: number, size: ImageSizeOption) => {
+    setImageSizes((prev) => prev.map((s, i) => (i === index ? size : s)))
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onSubmit({ ...formData, image_urls: imageUrls.length > 0 ? imageUrls : undefined })
+    onSubmit({
+      ...formData,
+      image_urls: imageUrls.length > 0 ? imageUrls : undefined,
+      image_sizes: imageUrls.length > 0 ? imageSizes : undefined,
+    })
   }
 
   const getImageDisplayUrl = (url: string) => {

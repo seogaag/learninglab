@@ -84,6 +84,46 @@ def _serialize_image_urls(urls: List[str]) -> Optional[str]:
     return json.dumps(urls)
 
 
+VALID_IMAGE_SIZES = {"full", "original", "small"}
+
+
+def _parse_image_sizes(val: Optional[str]) -> List[str]:
+    """image_sizes 필드를 파싱하여 리스트 반환 (최대 3개, 유효값만)"""
+    if not val or not val.strip():
+        return []
+    s = val.strip()
+    if s.startswith("["):
+        try:
+            import json
+            arr = json.loads(s)
+            if isinstance(arr, list):
+                return [str(x) for x in arr[:3] if str(x) in VALID_IMAGE_SIZES]
+        except Exception:
+            pass
+    return [s] if s in VALID_IMAGE_SIZES else []
+
+
+def _serialize_image_sizes(sizes: Optional[List[str]]) -> Optional[str]:
+    """크기 리스트를 image_sizes 필드에 저장할 문자열로 변환"""
+    if not sizes:
+        return None
+    out = [x for x in sizes[:3] if x in VALID_IMAGE_SIZES]
+    if not out:
+        return None
+    if len(out) == 1:
+        return out[0]
+    import json
+    return json.dumps(out)
+
+
+def _image_sizes_for_response(url_count: int, raw_sizes: Optional[str]) -> List[str]:
+    """응답용 image_sizes 리스트 (url 개수에 맞춤, 부족하면 'full')"""
+    parsed = _parse_image_sizes(raw_sizes)
+    while len(parsed) < url_count:
+        parsed.append("full")
+    return parsed[:url_count]
+
+
 def _get_community_upload_dir() -> Path:
     """Docker에서는 /app/uploads/community, 로컬에서는 프로젝트/uploads/community 사용"""
     import os
@@ -274,6 +314,7 @@ async def get_posts(
             
             try:
                 img_urls = _parse_image_urls(post.image_url)
+                img_sizes = _image_sizes_for_response(len(img_urls), getattr(post, "image_sizes", None)) if img_urls else None
                 post_dict = {
                     "id": post.id,
                     "post_type": post.post_type,
@@ -285,6 +326,7 @@ async def get_posts(
                     "view_count": post.view_count,
                     "image_url": img_urls[0] if img_urls else post.image_url,
                     "image_urls": img_urls if img_urls else None,
+                    "image_sizes": img_sizes,
                     "like_count": like_count,
                     "is_liked": is_liked,
                     "is_resolved": getattr(post, 'is_resolved', False),
@@ -363,6 +405,7 @@ async def get_post(
         author_name = "Global Partnership Center"
     
     img_urls = _parse_image_urls(post.image_url)
+    img_sizes = _image_sizes_for_response(len(img_urls), getattr(post, "image_sizes", None)) if img_urls else None
     post_dict = {
         "id": post.id,
         "post_type": post.post_type,
@@ -374,6 +417,7 @@ async def get_post(
         "view_count": post.view_count,
         "image_url": img_urls[0] if img_urls else post.image_url,
         "image_urls": img_urls if img_urls else None,
+        "image_sizes": img_sizes,
         "like_count": like_count,
         "is_liked": is_liked,
         "is_resolved": getattr(post, 'is_resolved', False),
@@ -456,6 +500,13 @@ async def create_post(
         urls = [post.image_url]
     stored_url = _serialize_image_urls(urls) if urls else None
 
+    # 이미지 크기 (url 개수에 맞춤, 부족하면 'full'로 채움)
+    sizes = (post.image_sizes or [])[:3]
+    sizes = [s if s in VALID_IMAGE_SIZES else "full" for s in sizes]
+    while len(sizes) < len(urls):
+        sizes.append("full")
+    stored_sizes = _serialize_image_sizes(sizes) if sizes else None
+
     # 게시글 생성
     db_post = Post(
         post_type=post.post_type,
@@ -464,7 +515,8 @@ async def create_post(
         author_id=author_id,
         author_email=author_email,
         author_name=author_name,
-        image_url=stored_url
+        image_url=stored_url,
+        image_sizes=stored_sizes,
     )
     db.add(db_post)
     db.flush()
@@ -520,6 +572,7 @@ async def create_post(
     mentions = [{"mentioned_email": pm.mentioned_email, "mentioned_name": pm.mentioned_name} for pm in db_post.mentions]
     
     img_urls = _parse_image_urls(db_post.image_url)
+    img_sizes = _image_sizes_for_response(len(img_urls), getattr(db_post, "image_sizes", None)) if img_urls else None
     post_dict = {
         "id": db_post.id,
         "post_type": db_post.post_type,
@@ -531,6 +584,7 @@ async def create_post(
         "view_count": db_post.view_count,
         "image_url": img_urls[0] if img_urls else db_post.image_url,
         "image_urls": img_urls if img_urls else None,
+        "image_sizes": img_sizes,
         "like_count": db_post.like_count or 0,
         "is_liked": False,
         "created_at": db_post.created_at,
@@ -605,6 +659,12 @@ async def update_post(
         db_post.content = post.content
     if post.image_urls is not None:
         db_post.image_url = _serialize_image_urls(post.image_urls[:3]) if post.image_urls else None
+    if post.image_sizes is not None:
+        urls_now = _parse_image_urls(db_post.image_url)
+        sizes = [s if s in VALID_IMAGE_SIZES else "full" for s in post.image_sizes[:3]]
+        while len(sizes) < len(urls_now):
+            sizes.append("full")
+        db_post.image_sizes = _serialize_image_sizes(sizes) if sizes else None
     if post.is_pinned is not None:
         db_post.is_pinned = post.is_pinned
     if post.is_resolved is not None:
@@ -687,6 +747,7 @@ async def update_post(
             pass
     
     img_urls = _parse_image_urls(db_post.image_url)
+    img_sizes = _image_sizes_for_response(len(img_urls), getattr(db_post, "image_sizes", None)) if img_urls else None
     post_dict = {
         "id": db_post.id,
         "post_type": db_post.post_type,
@@ -698,9 +759,10 @@ async def update_post(
         "view_count": db_post.view_count,
         "image_url": img_urls[0] if img_urls else db_post.image_url,
         "image_urls": img_urls if img_urls else None,
+        "image_sizes": img_sizes,
         "like_count": like_count,
-            "is_liked": is_liked,
-            "created_at": db_post.created_at,
+        "is_liked": is_liked,
+        "created_at": db_post.created_at,
         "updated_at": db_post.updated_at,
         "comment_count": comment_count,
         "tags": tags,
@@ -1016,6 +1078,7 @@ async def get_popular_posts(
             is_liked = existing_like is not None
         
         img_urls = _parse_image_urls(post.image_url)
+        img_sizes = _image_sizes_for_response(len(img_urls), getattr(post, "image_sizes", None)) if img_urls else None
         post_dict = {
             "id": post.id,
             "post_type": post.post_type,
@@ -1027,6 +1090,7 @@ async def get_popular_posts(
             "view_count": post.view_count,
             "image_url": img_urls[0] if img_urls else post.image_url,
             "image_urls": img_urls if img_urls else None,
+            "image_sizes": img_sizes,
             "like_count": like_count,
             "is_liked": is_liked,
             "created_at": post.created_at,
@@ -1183,6 +1247,7 @@ async def get_mentioned_posts(
         is_liked = existing_like is not None
         
         img_urls = _parse_image_urls(post.image_url)
+        img_sizes = _image_sizes_for_response(len(img_urls), getattr(post, "image_sizes", None)) if img_urls else None
         post_dict = {
             "id": post.id,
             "post_type": post.post_type,
@@ -1194,6 +1259,7 @@ async def get_mentioned_posts(
             "view_count": post.view_count,
             "image_url": img_urls[0] if img_urls else post.image_url,
             "image_urls": img_urls if img_urls else None,
+            "image_sizes": img_sizes,
             "like_count": like_count,
             "is_liked": is_liked,
             "is_resolved": getattr(post, 'is_resolved', False),

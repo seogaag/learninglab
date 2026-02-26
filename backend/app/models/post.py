@@ -23,6 +23,7 @@ class Post(Base):
     is_pinned = Column(Boolean, default=False)  # 공지사항 고정
     view_count = Column(Integer, default=0)  # 조회수
     image_url = Column(String, nullable=True)  # 첨부 이미지 URL
+    image_sizes = Column(String, nullable=True)  # 이미지별 표시 크기 (full/original/small) JSON 배열
     like_count = Column(Integer, default=0)  # 좋아요 수
     is_resolved = Column(Boolean, default=False)  # Request 해결 여부
     created_at = Column(DateTime(timezone=True), server_default=func.now())

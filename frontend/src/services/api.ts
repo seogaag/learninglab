@@ -25,10 +25,35 @@ apiClient.interceptors.request.use((config) => {
         config.params = {}
       }
       config.params.token = token
+      ;(config as any)._tokenSource = 'auth'
     }
   }
   return config
 })
+
+// 응답 인터셉터: 401 시 로그아웃 및 재로그인 안내
+apiClient.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    const status = err?.response?.status
+    const config = err?.config
+    if (status === 401) {
+      const tokenSource = (config as any)?._tokenSource
+      if (tokenSource === 'auth') {
+        localStorage.removeItem('auth_token')
+        localStorage.removeItem('user_email')
+        window.dispatchEvent(new CustomEvent('auth:session-expired'))
+      } else {
+        localStorage.removeItem('admin_token')
+        if (typeof window !== 'undefined') {
+          alert('관리자 로그인이 만료되었습니다. 다시 로그인해 주세요.')
+          window.location.href = '/admin/login'
+        }
+      }
+    }
+    return Promise.reject(err)
+  }
+)
 
 export interface Course {
   id: string
@@ -184,6 +209,7 @@ export interface Post {
   view_count: number
   image_url?: string
   image_urls?: string[]
+  image_sizes?: string[]  // full | original | small (이미지별 표시 크기)
   like_count: number
   is_liked: boolean
   is_resolved: boolean
@@ -264,6 +290,7 @@ export const communityApi = {
     tags?: string[]
     mentions?: string[]
     image_urls?: string[]
+    image_sizes?: string[]  // full | original | small
     is_pinned?: boolean
   }, adminToken?: string): Promise<Post> => {
     // Notice인 경우 관리자 토큰 사용, 그 외에는 일반 사용자 토큰 사용
@@ -280,6 +307,7 @@ export const communityApi = {
     tags?: string[]
     mentions?: string[]
     image_urls?: string[]
+    image_sizes?: string[]
     is_pinned?: boolean
     is_resolved?: boolean
   }, adminToken?: string): Promise<Post> => {
