@@ -3,6 +3,7 @@
   padding: 2rem 0;
 }
 
+/* 레이아웃: Home Working Together과 동일 (1400px + 좌우 2rem) */
 .classroom-grid {
   max-width: 1400px;
   margin: 0 auto;

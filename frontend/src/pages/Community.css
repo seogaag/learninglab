@@ -1,12 +1,14 @@
 .community {
   min-height: 100vh;
   background: #F2EFED;
-  padding: 2rem;
+  padding: 2rem 0;
 }
 
+/* 레이아웃: Home Working Together과 동일 (1400px + 좌우 2rem) */
 .community-container {
   max-width: 1400px;
   margin: 0 auto;
+  padding: 0 2rem;
 }
 
 .community-header {

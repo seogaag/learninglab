@@ -45,9 +45,11 @@
   text-align: center;
 }
 
+/* 레이아웃 기준: Working Together과 동일 (1400px + 좌우 2rem) */
 .remarkable-grid {
   max-width: 1400px;
   margin: 0 auto;
+  padding: 0 2rem;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 2rem;
