@@ -51,6 +51,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [])
 
+  // 토큰 만료 시 로그아웃 및 재로그인 안내
+  useEffect(() => {
+    const onSessionExpired = () => {
+      setUser(null)
+      setTokenState(null)
+      localStorage.removeItem('auth_token')
+      localStorage.removeItem('user_email')
+      alert('로그인이 만료되었습니다. 다시 로그인해 주세요.')
+    }
+    window.addEventListener('auth:session-expired', onSessionExpired)
+    return () => window.removeEventListener('auth:session-expired', onSessionExpired)
+  }, [])
+
   // URL에서 토큰 확인 (OAuth 콜백 - 백엔드가 /?token= 으로 리다이렉트)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)

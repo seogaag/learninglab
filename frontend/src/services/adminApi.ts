@@ -62,6 +62,21 @@ adminApi.interceptors.request.use((config) => {
   return config
 })
 
+// 응답 인터셉터: 401 시 관리자 로그아웃 및 재로그인 안내
+adminApi.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err?.response?.status === 401) {
+      localStorage.removeItem('admin_token')
+      if (typeof window !== 'undefined') {
+        alert('관리자 로그인이 만료되었습니다. 다시 로그인해 주세요.')
+        window.location.href = '/admin/login'
+      }
+    }
+    return Promise.reject(err)
+  }
+)
+
 export const adminAuthApi = {
   login: async (credentials: AdminLoginRequest): Promise<AdminToken> => {
     const response = await axios.post(`${API_URL}/admin/login`, credentials)
