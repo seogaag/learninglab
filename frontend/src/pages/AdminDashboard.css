@@ -277,6 +277,61 @@
   background: rgba(0, 0, 0, 0.8);
 }
 
+.form-group-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.form-group-toggle-label {
+  font-weight: 500;
+  color: #57463D;
+}
+
+.notice-pinned-toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  border: 2px solid #333;
+  background: #fff;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 0.2s, border-color 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.notice-pinned-toggle.off {
+  background: #fff;
+  border-color: #333;
+}
+
+.notice-pinned-toggle.off .notice-pinned-toggle-thumb {
+  left: 3px;
+  background: #333;
+}
+
+.notice-pinned-toggle.on {
+  background: #333;
+  border-color: #333;
+}
+
+.notice-pinned-toggle.on .notice-pinned-toggle-thumb {
+  left: calc(100% - 19px);
+  background: #fff;
+}
+
+.notice-pinned-toggle-thumb {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  transition: left 0.2s, background 0.2s;
+}
+
 .form-actions {
   display: flex;
   gap: 1rem;

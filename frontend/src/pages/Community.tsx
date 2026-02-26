@@ -83,7 +83,22 @@ const Community: React.FC = () => {
   const [popularPosts, setPopularPosts] = useState<Post[]>([])
   const [mentionedPosts, setMentionedPosts] = useState<Post[]>([])
   const [showMentions, setShowMentions] = useState(false)
+  const [imageLightboxUrl, setImageLightboxUrl] = useState<string | null>(null)
   const pageSize = 20
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setImageLightboxUrl(null)
+    }
+    if (imageLightboxUrl) {
+      document.addEventListener('keydown', onKeyDown)
+      document.body.style.overflow = 'hidden'
+    }
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      document.body.style.overflow = ''
+    }
+  }, [imageLightboxUrl])
 
   // URL 파라미터에서 게시글 ID, board(카테고리) 읽기
   useEffect(() => {
@@ -731,15 +746,22 @@ const Community: React.FC = () => {
                 />
                 {((selectedPost.image_urls && selectedPost.image_urls.length > 0) || selectedPost.image_url) && (
                   <div className="post-images-container">
-                    {(selectedPost.image_urls || (selectedPost.image_url ? [selectedPost.image_url] : [])).slice(0, MAX_IMAGES).map((url, idx) => (
-                      <div key={idx} className="post-image-container">
-                        <img 
-                          src={getPostImageSrc(url)} 
-                          alt={`Post attachment ${idx + 1}`}
-                          className="post-image"
-                        />
-                      </div>
-                    ))}
+                    {(selectedPost.image_urls || (selectedPost.image_url ? [selectedPost.image_url] : [])).slice(0, MAX_IMAGES).map((url, idx) => {
+                      const src = getPostImageSrc(url)
+                      return (
+                        <div key={idx} className="post-image-container post-image-clickable">
+                          <img
+                            src={src}
+                            alt={`Post attachment ${idx + 1}`}
+                            className="post-image"
+                            onClick={(e) => { e.stopPropagation(); setImageLightboxUrl(src) }}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => { if (e.key === 'Enter') setImageLightboxUrl(src) }}
+                          />
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
                 <div className="post-actions">
@@ -982,6 +1004,31 @@ const Community: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {imageLightboxUrl && (
+        <div
+          className="image-lightbox-overlay"
+          onClick={() => setImageLightboxUrl(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="이미지 크게 보기"
+        >
+          <button
+            type="button"
+            className="image-lightbox-close"
+            onClick={() => setImageLightboxUrl(null)}
+            aria-label="닫기"
+          >
+            ×
+          </button>
+          <img
+            src={imageLightboxUrl}
+            alt="Enlarged"
+            className="image-lightbox-img"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   )
 }

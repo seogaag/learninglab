@@ -553,15 +553,17 @@ const NoticeForm: React.FC<{
           </div>
         )}
       </div>
-      <div className="form-group">
-        <label>
-          <input
-            type="checkbox"
-            checked={formData.is_pinned}
-            onChange={(e) => setFormData({ ...formData, is_pinned: e.target.checked })}
-          />
-          고정 게시글
-        </label>
+      <div className="form-group form-group-toggle">
+        <span className="form-group-toggle-label">고정 게시글</span>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={formData.is_pinned}
+          className={`notice-pinned-toggle ${formData.is_pinned ? 'on' : 'off'}`}
+          onClick={() => setFormData({ ...formData, is_pinned: !formData.is_pinned })}
+        >
+          <span className="notice-pinned-toggle-thumb" />
+        </button>
       </div>
       <div className="form-actions">
         <button type="submit">저장</button>

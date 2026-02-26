@@ -96,6 +96,33 @@ def _get_community_upload_dir() -> Path:
     return project_root / "uploads" / "community"
 
 
+def _delete_post_image_files(image_url_value: Optional[str]) -> None:
+    """게시글에 연결된 Community 이미지 파일을 디스크에서 삭제 (URL이 /community/image/ 인 경우만)"""
+    if not image_url_value or not image_url_value.strip():
+        return
+    urls = _parse_image_urls(image_url_value)
+    upload_dir = _get_community_upload_dir()
+    for url in urls:
+        if not url or "/community/image/" not in url:
+            continue
+        try:
+            # URL에서 파일명 추출: /community/image/123_filename.png -> 123_filename.png
+            prefix = "/community/image/"
+            idx = url.rfind(prefix)
+            if idx == -1:
+                continue
+            raw = url[idx + len(prefix):].strip()
+            filename = raw.split("?")[0].strip() if "?" in raw else raw
+            if not filename or ".." in filename or "/" in filename or "\\" in filename:
+                continue
+            path = upload_dir / filename
+            if path.exists() and path.is_file():
+                path.unlink()
+                logger.info("Deleted post image file: %s", path)
+        except Exception as e:
+            logger.warning("Failed to delete post image %s: %s", url, e)
+
+
 @router.post("/upload-image")
 async def upload_community_image(
     file: UploadFile = File(...),
@@ -742,7 +769,10 @@ async def delete_post(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to delete this post"
         )
-    
+
+    # 게시글에 첨부된 이미지 파일 삭제 (/community/image/ 로 저장된 파일만)
+    _delete_post_image_files(db_post.image_url)
+
     db.delete(db_post)
     db.commit()
     return {"message": "Post deleted successfully"}
