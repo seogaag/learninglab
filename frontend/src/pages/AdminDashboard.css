@@ -2,6 +2,8 @@
   min-height: 100vh;
   background: #F2EFED;
   padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 .admin-header {
