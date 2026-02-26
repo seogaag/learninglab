@@ -76,9 +76,17 @@ const Community: React.FC = () => {
   const [showMentions, setShowMentions] = useState(false)
   const pageSize = 20
 
-  // URL 파라미터에서 게시글 ID 읽기
+  // URL 파라미터에서 게시글 ID, board(카테고리) 읽기
   useEffect(() => {
     const postId = searchParams.get('post')
+    const board = searchParams.get('board') as BoardType | null
+    if (board === 'notice' || board === 'forum' || board === 'request') {
+      setActiveBoard(board)
+      setSelectedPost(null)
+      setShowMentions(false)
+      setPage(1)
+      setSelectedTag(null)
+    }
     if (postId) {
       const id = parseInt(postId, 10)
       if (!isNaN(id) && (!selectedPost || selectedPost.id !== id)) {

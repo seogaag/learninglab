@@ -341,10 +341,16 @@ const Home: React.FC = () => {
         <h2 className="section-main-title remarkable-section-title"></h2>
         <div className="remarkable-grid">
           <div className="remarkable-left">
-            <div className="remarkable-notice-box">
+            <div
+              className="remarkable-notice-box"
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate('/community?board=notice')}
+              onKeyDown={(e) => e.key === 'Enter' && navigate('/community?board=notice')}
+            >
               <h3 className="remarkable-notice-heading">Notice</h3>
               {pinnedNotices.length > 0 ? (
-                <div className="remarkable-notice-list">
+                <div className="remarkable-notice-list" onClick={(e) => e.stopPropagation()}>
                   {pinnedNotices.map((notice) => (
                     <div
                       key={notice.id}
