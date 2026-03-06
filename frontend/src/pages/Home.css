@@ -58,7 +58,7 @@
 
 .service-card-title {
   text-align: center;
-  font-size: 2rem;
+  font-size: 2.5rem;
   font-weight: 700;
   color: #1a1a1a;
   margin: 0 0 50px 0;
@@ -807,7 +807,6 @@
   padding: 0 2rem;
 }
 
-/* Welcome 스타일과 동일 */
 .faq-section-label {
   display: block;
   width: 100%;
@@ -820,7 +819,7 @@
 
 .faq-section-title {
   text-align: center;
-  font-size: 2rem;
+  font-size: 2.5rem;
   font-weight: 700;
   color: #1a1a1a;
   margin: 0 0 50px 0;
@@ -1064,148 +1063,6 @@
   background: rgba(87, 70, 61, 0.6);
 }
 
-/* Feedback & Encouragement Section */
-.feedback-section {
-  max-width: 1400px;
-  margin: 4rem auto;
-  padding: 3rem 2rem;
-  text-align: center;
-  background: transparent;
-}
-
-.feedback-section .section-main-title {
-  color: #333;
-}
-
-.testimonials-carousel {
-  position: relative;
-  margin-top: 2rem;
-}
-
-.testimonials-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 2rem;
-  margin-top: 2rem;
-}
-
-.testimonial-card {
-  background: #ffffff;
-  border: 1px solid #b8d4a0;
-  border-radius: 12px;
-  padding: 2rem;
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.testimonial-header {
-  margin-bottom: 0.5rem;
-}
-
-.testimonial-name {
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: #57463D;
-  margin-bottom: 0.25rem;
-}
-
-.testimonial-role {
-  font-size: 0.9rem;
-  color: #685A55;
-  margin: 0;
-}
-
-.testimonial-text {
-  font-size: 0.95rem;
-  color: #57463D;
-  line-height: 1.6;
-  flex: 1;
-  margin: 0;
-}
-
-.testimonial-rating {
-  display: flex;
-  gap: 0.25rem;
-  margin-top: 0.5rem;
-}
-
-.testimonial-rating .star {
-  color: #FFD700;
-  font-size: 1.2rem;
-}
-
-.testimonial-arrow {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 48px;
-  height: 48px;
-  border: none;
-  background: rgba(87, 70, 61, 0.6);
-  color: white;
-  font-size: 2rem;
-  line-height: 1;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: all 0.3s;
-  z-index: 10;
-  padding: 0;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.feedback-section:hover .testimonial-arrow {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.testimonial-arrow:hover {
-  background: rgba(87, 70, 61, 0.9);
-  transform: translateY(-50%) scale(1.1);
-}
-
-.testimonial-arrow-prev {
-  left: -24px;
-}
-
-.testimonial-arrow-next {
-  right: -24px;
-}
-
-.testimonial-pagination {
-  display: flex;
-  justify-content: center;
-  gap: 0.5rem;
-  margin-top: 2rem;
-}
-
-.testimonial-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(87, 70, 61, 0.4);
-  cursor: pointer;
-  transition: all 0.3s;
-  padding: 0;
-}
-
-.testimonial-dot.active {
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(87, 70, 61, 0.3);
-  transform: scale(1.2);
-}
-
-.testimonial-dot:hover:not(.active) {
-  background: rgba(87, 70, 61, 0.6);
-}
-
 /* Action Buttons Section */
 .action-buttons-section {
   max-width: 1400px;
@@ -1288,23 +1145,6 @@
     right: -20px;
   }
   
-  .testimonials-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .testimonial-arrow {
-    width: 40px;
-    height: 40px;
-    font-size: 1.5rem;
-  }
-
-  .testimonial-arrow-prev {
-    left: -20px;
-  }
-
-  .testimonial-arrow-next {
-    right: -20px;
-  }
 }
 
 @media (max-width: 768px) {
@@ -1340,7 +1180,9 @@
     right: 0.5rem;
   }
 
-  .section-main-title {
+  .section-main-title,
+  .service-card-title,
+  .faq-section-title {
     font-size: 2rem;
   }
 
