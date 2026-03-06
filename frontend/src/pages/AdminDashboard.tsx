@@ -488,7 +488,7 @@ const NoticeForm: React.FC<{
     try {
       const result = await communityApi.uploadImage(file, adminToken)
       setImageUrls((prev) => [...prev, result.url].slice(0, MAX_NOTICE_IMAGES))
-      setImageSizes((prev): ImageSizeOption[] => [...prev, 'full'].slice(0, MAX_NOTICE_IMAGES))
+      setImageSizes((prev) => ([...prev, 'full'].slice(0, MAX_NOTICE_IMAGES) as ImageSizeOption[]))
     } catch (err: any) {
       console.error('Notice image upload error:', err)
       alert(err.response?.data?.detail || '이미지 업로드에 실패했습니다.')
