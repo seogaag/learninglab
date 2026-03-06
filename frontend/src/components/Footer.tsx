@@ -45,7 +45,7 @@ const Footer: React.FC = () => {
               Classroom
             </a>
             <a 
-              href="/hub"
+              href="/collaborationhub"
               className="footer-link"
             >
               Collaboration Hub

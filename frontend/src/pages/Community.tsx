@@ -1325,7 +1325,7 @@ const PostForm: React.FC<{
       <h3>{editingPost ? 'Edit Post' : `New Post (${boardType.toUpperCase()})`}</h3>
       <div className="form-group form-notice-hub">
         <p className="hub-notice-text">
-          Please use <Link to="/hub">Hub</Link> to share your files.
+          Please use <Link to="/collaborationhub">Collaboration Hub</Link> to share your files.
         </p>
       </div>
       <div className="form-group">

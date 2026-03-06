@@ -142,7 +142,7 @@ const Hub: React.FC = () => {
     <div className="hub">
       <div className="hub-container">
         <div className="hub-header">
-          <h2 className="section-title">Hub</h2>
+          <h2 className="section-title">Collaboration Hub</h2>
           <a
             href={folderLink}
             target="_blank"

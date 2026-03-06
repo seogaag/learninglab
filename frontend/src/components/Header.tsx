@@ -75,7 +75,7 @@ const Header: React.FC = () => {
           <Link to="/community" className={location.pathname === '/community' ? 'nav-link active' : 'nav-link'} onClick={closeMobileMenu}>
             Community
           </Link>
-          <Link to="/hub" className={location.pathname === '/hub' ? 'nav-link active' : 'nav-link'} onClick={closeMobileMenu}>
+          <Link to="/collaborationhub" className={location.pathname === '/collaborationhub' ? 'nav-link active' : 'nav-link'} onClick={closeMobileMenu}>
             Collaboration Hub
           </Link>
         </nav>

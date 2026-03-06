@@ -24,7 +24,8 @@ function App() {
                 <Route path="/learning" element={<Navigate to="/classroom" replace />} />
                 <Route path="/classroom" element={<Classroom />} />
                 <Route path="/community" element={<Community />} />
-                <Route path="/hub" element={<Hub />} />
+                <Route path="/hub" element={<Navigate to="/collaborationhub" replace />} />
+                <Route path="/collaborationhub" element={<Hub />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Layout>

@@ -279,7 +279,7 @@ const Home: React.FC = () => {
           <b className="service-card-welcome">WELCOME</b>
           <h2 className="service-card-title">What Can You Do on GFLab?</h2>
           <div className="service-card-grid">
-            <div className="service-card service-card-hub" onClick={() => navigate('/hub')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && navigate('/hub')}>
+            <div className="service-card service-card-hub" onClick={() => navigate('/collaborationhub')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && navigate('/collaborationhub')}>
               <img src="/Icon_1.png" alt="" className="service-card-icon" />
               <h3 className="service-card-card-title">Collaboration Hub</h3>
               <b className="service-card-desc">Share Global Resources</b>
