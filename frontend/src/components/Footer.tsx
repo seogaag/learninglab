@@ -7,6 +7,14 @@ const Footer: React.FC = () => {
       <div className="footer-container">
         <div className="footer-left">
           <h2 className="footer-logo">Global Fundraising Lab</h2>
+          <div className="footer-social">
+            <a href="https://www.instagram.com/goodneighborsglobal" target="_blank" rel="noopener noreferrer" className="footer-social-icon" aria-label="Instagram">
+              <img src="/ICON_Insta.png" alt="" />
+            </a>
+            <a href="https://www.facebook.com/GoodNeighborsGlobal/" target="_blank" rel="noopener noreferrer" className="footer-social-icon" aria-label="Facebook">
+              <img src="/ICON_fb.png" alt="" />
+            </a>
+          </div>
         </div>
         
         <div className="footer-right">
@@ -31,10 +39,10 @@ const Footer: React.FC = () => {
           <div className="footer-column">
             <h3 className="footer-column-title">GET HELP</h3>
             <a 
-              href="/learning"
+              href="/classroom"
               className="footer-link"
             >
-              Class room
+              Classroom
             </a>
             <a 
               href="/hub"

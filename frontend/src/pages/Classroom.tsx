@@ -183,7 +183,7 @@ const Classroom: React.FC = () => {
           <CalendarSidebar />
         </div>
         <div className="main-content-area">
-          <h2 className="section-title">Learning</h2>
+          <h2 className="section-title">Classroom</h2>
           <div className="tabs">
             <button 
               className={`tab ${activeTab === 'all' ? 'active' : ''}`}
@@ -446,7 +446,7 @@ const Classroom: React.FC = () => {
                                   className="course-btn"
                                   onClick={(e) => e.stopPropagation()}
                                 >
-                                  Start Learning
+                                  Enter Classroom
                                 </a>
                               )}
                             </div>

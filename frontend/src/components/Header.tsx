@@ -69,14 +69,14 @@ const Header: React.FC = () => {
           <Link to="/" className={location.pathname === '/' ? 'nav-link active' : 'nav-link'} onClick={closeMobileMenu}>
             Home
           </Link>
-          <Link to="/learning" className={location.pathname === '/learning' ? 'nav-link active' : 'nav-link'} onClick={closeMobileMenu}>
-            Learning
+          <Link to="/classroom" className={location.pathname === '/classroom' ? 'nav-link active' : 'nav-link'} onClick={closeMobileMenu}>
+            Classroom
           </Link>
           <Link to="/community" className={location.pathname === '/community' ? 'nav-link active' : 'nav-link'} onClick={closeMobileMenu}>
             Community
           </Link>
           <Link to="/hub" className={location.pathname === '/hub' ? 'nav-link active' : 'nav-link'} onClick={closeMobileMenu}>
-            Hub
+            Collaboration Hub
           </Link>
         </nav>
 

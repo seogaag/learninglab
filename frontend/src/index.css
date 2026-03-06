@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap');
+
 @font-face {
   font-family: 'Good Neighbors';
   src: url('/fonts/굿네이버스 좋은이웃체 Regular.ttf') format('truetype');
@@ -21,7 +23,7 @@
 }
 
 body {
-  font-family: 'Good Neighbors', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -36,13 +38,12 @@ code {
     monospace;
 }
 
-/* Bold 적용 대상 */
+/* Title: Poppins Bold (기능서 가이드) */
 h1, h2, h3, h4, h5, h6,
-.font-bold,
-[class*="title"],
-[class*="heading"],
-button,
+.section-main-title,
 .footer-logo,
-.section-title {
+.what-can-you-do-title,
+.faq-section-title {
+  font-family: 'Poppins', 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-weight: 700;
 }

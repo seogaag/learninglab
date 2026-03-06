@@ -10,7 +10,7 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation()
-  const hideTopRightWave = location.pathname === '/learning' || location.pathname === '/hub'
+  const hideTopRightWave = location.pathname === '/classroom' || location.pathname === '/hub'
 
   return (
     <div className="layout">

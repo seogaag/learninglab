@@ -6,6 +6,19 @@ import './Home.css'
 
 const GPC_CALENDAR_URL = 'https://calendar.google.com/calendar/u/0?cid=Y19lZDU5YWU0MTcwNTIzODM0M2M2ZDMzMDA5MjQ2Y2UwYjM0OTdjZWY5MTM2NzAxYTUwMmNkMTdmZTQyYjAzZTVhQGdyb3VwLmNhbGVuZGFyLmdvb2dsZS5jb20'
 
+const FaqItem: React.FC<{ question: string; answer: string }> = ({ question, answer }) => {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className={`faq-item ${open ? 'open' : ''}`}>
+      <button type="button" className="faq-question" onClick={() => setOpen(!open)} aria-expanded={open}>
+        <span className="faq-plus">{open ? '−' : '+'}</span>
+        <span>{question}</span>
+      </button>
+      {open && <div className="faq-answer">{answer}</div>}
+    </div>
+  )
+}
+
 interface MiniCalendarProps {
   eventDates: Set<string>
 }
@@ -81,14 +94,6 @@ interface WorkingTogetherProject {
   images: string[]
 }
 
-interface Testimonial {
-  id: number
-  name: string
-  role: string
-  text: string
-  rating: number
-}
-
 const Home: React.FC = () => {
   const navigate = useNavigate()
   const [banners, setBanners] = useState<Banner[]>([])
@@ -120,74 +125,6 @@ const Home: React.FC = () => {
       images: ['/working_together/2024_EnU_1.png', '/working_together/2024_EnU_2.png']
     }
   ]
-
-  // Testimonials 데이터 (나중에 DB에서 가져올 수 있음)
-  const testimonials: Testimonial[] = [
-    {
-      id: 1,
-      name: 'Rouvinn',
-      role: 'GPC Global Fundraising Support Unit',
-      text: 'This hub has been such a practical resource for me. I find it clear, easy to follow, and well-designed. It makes continuous learning significantly more manageable and effective!',
-      rating: 5
-    },
-    {
-      id: 2,
-      name: 'Birdy Kim',
-      role: 'GPC Management Support Team',
-      text: 'It is very beneficial as it provides training on how to begin fundraising in the field, from the basics to practical methods. I feel I will continue to gain much support from this, and I also expect that it will lead to tangible fundraising outcomes:)',
-      rating: 5
-    },
-    {
-      id: 3,
-      name: 'Tim Park',
-      role: 'Good Neighbors USA',
-      text: 'This fundraising lab is incredibly valuable, offering a dynamic hub for hands-on learning and real-world application. It\'s a powerful platform that expands our potential—empowering us to learn, and grow alongside the best in the industry.',
-      rating: 5
-    },
-    {
-      id: 4,
-      name: 'Ellen Kim',
-      role: 'GPC Global Budget Strategy and Plan Team',
-      text: 'It was valuable to hear different approaches from colleagues in other countries. It gave me fresh perspectives and reminded me of the importance of collaboration and knowledge sharing.',
-      rating: 5
-    },
-    {
-      id: 5,
-      name: 'Jay Kim',
-      role: 'GPC Global Fundraising Support Unit',
-      text: 'As a fundraising officer, the Brand Awareness part had always felt quite rogue to me. I requested support from GFSU on this, and the content provided was very helpful. Thank you for creating such a convenient practical lecture.',
-      rating: 5
-    },
-    {
-      id: 6,
-      name: 'Joy Jung',
-      role: 'GPC Global Fundraising Support Unit',
-      text: 'I truly enjoyed the meaningful time we had to communicate and share experiences together, and I felt very grateful and happy throughout.',
-      rating: 5
-    },
-    {
-      id: 7,
-      name: 'Julie Seo',
-      role: 'GPC Global Fundraising Support Unit',
-      text: 'GFLab provided exactly the lectures we needed. we were able to apply them in our context. The guidance was practical and easy to put into action. We will continue working with GFLab to steadily expand our fundraising efforts.',
-      rating: 5
-    },
-    {
-      id: 8,
-      name: 'Stephanie',
-      role: 'GPC Global Fundraising Support Unit',
-      text: 'This platform is helpful for gaining insights from other countries, especially with their lessons learned.',
-      rating: 5
-    }
-  ]
-
-  const [currentTestimonialPage, setCurrentTestimonialPage] = useState(0)
-  const testimonialsPerPage = 4
-  const totalPages = Math.ceil(testimonials.length / testimonialsPerPage)
-  const currentTestimonials = testimonials.slice(
-    currentTestimonialPage * testimonialsPerPage,
-    (currentTestimonialPage + 1) * testimonialsPerPage
-  )
 
   useEffect(() => {
     loadBanners()
@@ -336,8 +273,37 @@ const Home: React.FC = () => {
         </section>
       )}
 
+      {/* Service Cards: What Can You Do on GFLab? (기능서 3.2) */}
+      <section className="service-card-section">
+        <div className="service-card-inner">
+          <b className="service-card-welcome">WELCOME</b>
+          <h2 className="service-card-title">What Can You Do on GFLab?</h2>
+          <div className="service-card-grid">
+            <div className="service-card service-card-hub" onClick={() => navigate('/hub')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && navigate('/hub')}>
+              <img src="/Icon_1.png" alt="" className="service-card-icon" />
+              <h3 className="service-card-card-title">Collaboration Hub</h3>
+              <b className="service-card-desc">Share Global Resources</b>
+              <p className="service-card-desc">share and download fundraising photos from Good Neighbors worldwide - all in one place.</p>            
+            </div>
+            <div className="service-card service-card-classroom" onClick={() => navigate('/classroom')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && navigate('/classroom')}>
+              <img src="/Icon_2.png" alt="" className="service-card-icon" />
+              <h3 className="service-card-card-title">Classroom</h3>
+              <b className="service-card-desc">Learn Anytime, Anywhere</b>
+              <p className="service-card-desc">Level up your skills with courses on content creation, filming, and digital marketing, anytime and anywhere.</p>            
+            </div>
+            <div className="service-card service-card-community" onClick={() => navigate('/community')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && navigate('/community')}>
+              <img src="/Icon_3.png" alt="" className="service-card-icon" />
+              <h3 className="service-card-card-title">Community</h3>
+              <b className="service-card-desc">Connect, Discuss & Suggest</b>
+              <p className="service-card-desc">Connect with GN staff, share ideas, and send inquiries or proposals with ease.</p>            
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Remarkable: Notice + Calendar (1:1) */}
       <section className="remarkable-section">
+        <div className="remarkable-inner">
         <h2 className="section-main-title remarkable-section-title"></h2>
         <div className="remarkable-grid">
           <div className="remarkable-left">
@@ -348,7 +314,10 @@ const Home: React.FC = () => {
               onClick={() => navigate('/community?board=notice')}
               onKeyDown={(e) => e.key === 'Enter' && navigate('/community?board=notice')}
             >
-              <h3 className="remarkable-notice-heading">Notice</h3>
+              <div className="remarkable-notice-heading-row">
+                <h3 className="remarkable-notice-heading">Notice</h3>
+                <span className="remarkable-notice-viewall" onClick={(e) => { e.stopPropagation(); navigate('/community?board=notice'); }}>View All</span>
+              </div>
               {pinnedNotices.length > 0 ? (
                 <div className="remarkable-notice-list" onClick={(e) => e.stopPropagation()}>
                   {pinnedNotices.map((notice) => (
@@ -377,19 +346,21 @@ const Home: React.FC = () => {
             <MiniCalendar eventDates={calendarEventDates} />
           </div>
         </div>
+        </div>
       </section>
 
       {/* Working Together Section */}
       <div className="working-together-section">
-        <h2 className="section-main-title">Working Together</h2>
-        <div className="working-together-grid">
+        <div className="working-together-inner">
+          <h2 className="section-main-title">Working Together</h2>
+          <div className="working-together-grid">
           {workingTogetherProjects.map((project, projectIndex) => (
             <div key={project.id} className="working-together-item">
               <div className="working-together-image-wrapper">
-                <img 
-                  src={project.images[projectImageIndices[projectIndex]]} 
-                  alt={project.name} 
-                  className="working-together-image" 
+                <img
+                  src={project.images[projectImageIndices[projectIndex]]}
+                  alt={project.name}
+                  className="working-together-image"
                 />
                 <div className="working-together-indicators-small">
                   {project.images.map((_, index) => (
@@ -404,79 +375,64 @@ const Home: React.FC = () => {
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Feedback & Encouragement Section */}
-      <div className="feedback-section">
-        <h2 className="section-main-title">Feedback & Encouragement</h2>
-        <div className="testimonials-carousel">
-          {totalPages > 1 && (
-            <button
-              type="button"
-              className="testimonial-arrow testimonial-arrow-prev"
-              onClick={() => setCurrentTestimonialPage((prev) => (prev <= 0 ? totalPages - 1 : prev - 1))}
-              aria-label="Previous testimonial"
-            >
-              ‹
-            </button>
-          )}
-          <div className="testimonials-grid">
-            {currentTestimonials.map((testimonial) => (
-              <div key={testimonial.id} className="testimonial-card">
-                <div className="testimonial-header">
-                  <h3 className="testimonial-name">{testimonial.name}</h3>
-                  <p className="testimonial-role">{testimonial.role}</p>
-                </div>
-                <p className="testimonial-text">{testimonial.text}</p>
-                <div className="testimonial-rating">
-                  {Array.from({ length: testimonial.rating }).map((_, i) => (
-                    <span key={i} className="star">★</span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-          {totalPages > 1 && (
-            <button
-              type="button"
-              className="testimonial-arrow testimonial-arrow-next"
-              onClick={() => setCurrentTestimonialPage((prev) => (prev >= totalPages - 1 ? 0 : prev + 1))}
-              aria-label="Next testimonial"
-            >
-              ›
-            </button>
-          )}
-          {totalPages > 1 && (
-            <div className="testimonial-pagination">
-              {Array.from({ length: totalPages }).map((_, index) => (
-                <button
-                  key={index}
-                  type="button"
-                  className={`testimonial-dot ${index === currentTestimonialPage ? 'active' : ''}`}
-                  onClick={() => setCurrentTestimonialPage(index)}
-                  aria-label={`Page ${index + 1}`}
-                />
-              ))}
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Action Buttons Section */}
-      <div className="action-buttons-section">
-        <button 
-          className="action-button"
-          onClick={() => navigate('/community')}
-        >
-          Community
-        </button>
-        <button 
-          className="action-button"
-          onClick={() => navigate('/learning')}
-        >
-          Class Room
-        </button>
-      </div>
+      {/* How to use GFLab (기능서 3.5 YouTube) */}
+      <section className="youtube-section">
+        <div className="youtube-section-inner">
+          <h2 className="section-main-title">How to use GFLab</h2>
+          <div className="youtube-card">
+          <div className="youtube-wrapper">
+            <iframe
+              title="How to use GFLab"
+              src="https://www.youtube.com/embed/Oj7zTJuUlGw"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="youtube-iframe"
+            />
+          </div>
+        </div>
+        </div>
+      </section>
+
+      {/* ASK YOUR QUESTIONS - Frequently Asked Questions (기능서 3.5) */}
+      <section className="faq-section">
+        <div className="faq-section-inner">
+          <p className="faq-section-label">ASK YOUR QUESTIONS</p>
+          <h2 className="faq-section-title">Frequently Asked Questions</h2>
+          <div className="faq-list">
+          <FaqItem
+            question="I can't log in."
+            answer="Personal accounts and country-specific accounts are not supported. Please log in with your @globalgn.org account only."
+          />
+          <FaqItem
+            question="I want to change my password."
+            answer="You can change your password only after completing two-factor authentication (2FA). If you haven't set up a verified phone number or email address, please contact the GPC IT staff."
+          />
+          <FaqItem
+            question="I'm not sure if my sign up registration was submitted."
+            answer="If you have completed the form, please wait. Accounts are created on a weekly basis, and a confirmation email will be sent to the address you provided in the form."
+          />
+          <FaqItem
+            question="How do I request materials?"
+            answer="Go to Community → Request and submit your inquiry. For a faster response, please @mention the GPC representative."
+          />
+          <FaqItem
+            question="How do I upload Fundraising assets?"
+            answer="Anyone who has joined the Collaboration Hub (Google Drive) can upload freely. Please make sure to read the Collaboration Hub User Guide before uploading."
+          />
+          <FaqItem
+            question="I want to share my experience through a class."
+            answer="If you'd like to open a new class or suggest an idea, leave a request under Community → Request. We'll review it and get back to you."
+          />
+          <FaqItem
+            question="What is the Calendar for?"
+            answer="The calendar shows globally relevant updates such as new classes, articles, and special dates. If you'd like to add an event, please leave a request in Community → Request."
+          />
+        </div>
+        </div>
+      </section>
     </div>
   )
 }
