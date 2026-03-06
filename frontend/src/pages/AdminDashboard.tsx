@@ -488,7 +488,7 @@ const NoticeForm: React.FC<{
     try {
       const result = await communityApi.uploadImage(file, adminToken)
       setImageUrls((prev) => [...prev, result.url].slice(0, MAX_NOTICE_IMAGES))
-      setImageSizes((prev) => [...prev, 'full'].slice(0, MAX_NOTICE_IMAGES))
+      setImageSizes((prev): ImageSizeOption[] => [...prev, 'full'].slice(0, MAX_NOTICE_IMAGES))
     } catch (err: any) {
       console.error('Notice image upload error:', err)
       alert(err.response?.data?.detail || '이미지 업로드에 실패했습니다.')
@@ -500,10 +500,6 @@ const NoticeForm: React.FC<{
   const removeNoticeImage = (index: number) => {
     setImageUrls((prev) => prev.filter((_, i) => i !== index))
     setImageSizes((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  const setNoticeImageSize = (index: number, size: ImageSizeOption) => {
-    setImageSizes((prev) => prev.map((s, i) => (i === index ? size : s)))
   }
 
   const handleSubmit = (e: React.FormEvent) => {
