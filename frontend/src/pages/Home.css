@@ -2,10 +2,16 @@
   width: 100%;
 }
 
-/* ========== 캐러셀 배너 ========== */
+/* ========== 캐러셀 배너 (width/max-width 구조) ==========
+ * - hero-carousel: width 100% → 화면 전체 폭
+ * - hero-carousel-inner: width 100% → 부모 전체 사용
+ * - hero-carousel-image: inset 0, background-size cover → 배경 이미지가 영역 꽉 채움
+ * (내부 텍스트/CTA는 별도 레이어로 max-width 컨테이너 없이 절대 위치)
+ */
 .hero-carousel {
   position: relative;
   width: 100%;
+  max-width: 100%;
   min-height: 480px;
   overflow: hidden;
   background: #ffffff;
@@ -21,13 +27,16 @@
 .hero-carousel-inner {
   position: relative;
   width: 100%;
+  max-width: 100%;
   min-height: 480px;
 }
 
+/* 배너: width 100%로 좌우 끝까지 채움, cover로 이미지 비율 유지하며 꽉 채움 */
 .hero-carousel-image {
   position: absolute;
   inset: 0;
-  background-size: contain;
+  width: 100%;
+  background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   background-color: #ffffff;

@@ -60,7 +60,7 @@ const Header: React.FC = () => {
             <span />
           </button>
           <Link to="/" className="logo" onClick={closeMobileMenu}>
-            <img src="/goodneighbors-logo.jpg" alt="Good Neighbors" className="logo-img" />
+            <img src="/gn-logo.png" alt="Good Neighbors" className="logo-img" />
             <span className="logo-text">Fundraising Lab</span>
           </Link>
         </div>
