@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 import './Footer.css'
 
 const Footer: React.FC = () => {
@@ -38,18 +39,18 @@ const Footer: React.FC = () => {
           
           <div className="footer-column">
             <h3 className="footer-column-title">GET HELP</h3>
-            <a 
-              href="/classroom"
+            <Link 
+              to="/classroom"
               className="footer-link"
             >
               Classroom
-            </a>
-            <a 
-              href="/collaborationhub"
+            </Link>
+            <Link 
+              to="/collaborationhub"
               className="footer-link"
             >
               Collaboration Hub
-            </a>
+            </Link>
           </div>
           
           <div className="footer-column">

@@ -1,21 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap');
 
-@font-face {
-  font-family: 'Good Neighbors';
-  src: url('/fonts/굿네이버스 좋은이웃체 Regular.ttf') format('truetype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Good Neighbors';
-  src: url('/fonts/굿네이버스 좋은이웃체 Bold.ttf') format('truetype');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
 * {
   margin: 0;
   padding: 0;
