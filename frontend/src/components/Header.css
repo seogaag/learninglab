@@ -50,8 +50,9 @@
 
 .logo-text {
   font-size: 1.25rem;
-  font-weight: 600;
-  color: #57463D;
+  font-weight: 700;
+  font-family: inherit;
+  color: #333;
 }
 
 .header-nav {
