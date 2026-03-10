@@ -145,7 +145,7 @@ const Home: React.FC = () => {
     if (banners.length <= 1) return
     const interval = setInterval(() => {
       setCurrentBannerIndex((i) => (i >= banners.length - 1 ? 0 : i + 1))
-    }, 5000)
+    }, 8000)
     return () => clearInterval(interval)
   }, [banners.length])
 
@@ -266,7 +266,7 @@ const Home: React.FC = () => {
           )}
         </section>
       ) : (
-        <section className="hero-carousel" aria-label="Main banner carousel" style={{ backgroundColor: 'white', minHeight: '480px' }}>
+        <section className="hero-carousel" aria-label="Main banner carousel" style={{ backgroundColor: 'white', minHeight: '560px' }}>
           <div className="hero-carousel-inner" style={{ backgroundColor: 'white' }}>
             <div className="hero-carousel-image" style={{ backgroundColor: 'white' }} />
           </div>

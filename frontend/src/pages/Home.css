@@ -12,7 +12,7 @@
   position: relative;
   width: 100%;
   max-width: 100%;
-  min-height: 480px;
+  min-height: 560px;
   overflow: hidden;
   background: #ffffff;
 }
@@ -28,7 +28,7 @@
   position: relative;
   width: 100%;
   max-width: 100%;
-  min-height: 480px;
+  min-height: 560px;
 }
 
 /* 배너: width 100%로 좌우 끝까지 채움, cover로 이미지 비율 유지하며 꽉 채움 */
@@ -50,7 +50,7 @@
 }
 
 .service-card-inner {
-  max-width: 1440px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 0 2rem;
 }
@@ -460,6 +460,7 @@
   color: #000;
 }
 
+/* 커서가 캐러셀 위에 있을 때만 화살표 표시 */
 .hero-carousel-arrow {
   position: absolute;
   top: 50%;
@@ -475,13 +476,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  opacity: 0;
   transition: opacity 0.2s;
   z-index: 2;
   padding: 0;
 }
 
+.hero-carousel:hover .hero-carousel-arrow {
+  opacity: 1;
+}
+
 .hero-carousel-arrow:hover {
-  opacity: 0.7;
+  opacity: 0.8 !important;
 }
 
 .hero-carousel-arrow-prev {
